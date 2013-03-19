@@ -1,31 +1,30 @@
 module VoterFile
   class CSVAudit < CSVDriver
 
-    attr_accessor :path, :delimiter, :remote_host, :keys
+    attr_accessor :path, :delimiter, :quote, :remote_host, :keys
 
-    def initialize(path, delim, opts={})
+    def initialize(path, opts={})
       super()
       @path = path
-      @delimiter = delim
+      @delimiter = opts[:delimiter] || VoterFile::CSVDriver::CSVFile::DEFAULT_DELIMITER
+      @quote = opts[:quote] || VoterFile::CSVDriver::CSVFile::DEFAULT_QUOTE
       @remote_host = opts[:remote_host]
       @keys = opts[:keys] || []
     end
 
     def perform
-      result = AuditResult.new
-
       begin
-        job(result)
+        return job
       ensure
         clean_up!
       end
-
-      return result
     end
 
-    def job(result)
+    def job
+      result = AuditResult.new
       file = load_file(path) do |f|
         f.delimiter = delimiter
+        f.quote = quote
         f.remote_host = remote_host
       end
 
@@ -47,6 +46,7 @@ module VoterFile
       end
 
       result.malformed_count = file.malformed_count
+      result
     end
 
     def load_file(path)
