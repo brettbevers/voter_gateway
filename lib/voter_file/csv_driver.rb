@@ -160,6 +160,10 @@ module VoterFile
       self.loaded_extensions << name.to_sym
     end
 
+    def exec_sql(sql)
+      db_connection.execute(sql)
+    end
+
     def copy_column(col_name, opts)
       target_table = opts.delete(:to)
       sql = target_table.copy_column(col_name, opts)

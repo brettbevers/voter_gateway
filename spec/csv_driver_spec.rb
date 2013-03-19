@@ -153,6 +153,13 @@ describe VoterFile::CSVDriver do
     end
   end
 
+  describe "#exec_sql" do
+    it "should execute the given sql command" do
+      subject_should_execute_sql("SELECT 'test'")
+      subject.exec_sql("SELECT 'test'")
+    end
+  end
+
   describe "#db_connection" do
     it "should return the database connection" do
       db_connection = stub
