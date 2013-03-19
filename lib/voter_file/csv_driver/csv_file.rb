@@ -19,6 +19,7 @@ class VoterFile::CSVDriver::CSVFile
   def headers
     if remote_host
       head = `ssh #{remote_host} 'head -n 1 #{path}'`
+      # TODO (sandrasi): in case of quoted values it may return invalid headers
       head.gsub(/[\r\n]/, '').split(delimiter)
     else
       CSV.open(path, :col_sep => delimiter).shift
@@ -39,20 +40,32 @@ class VoterFile::CSVDriver::CSVFile
 
   def remove_malformed_rows
     f = self.path
-    delimiter_map = {'|' => '\|'}
-    d = delimiter_map[delimiter] || delimiter
+    d = egrep_escape(delimiter)
+    q = egrep_escape(quote)
     corrected_file = "#{f}.corrected"
     c = (headers.count - 1).to_s
-    regexp = '^[^' + d + ']*(' + d + '[^' + d + ']*){' + c + '}$'
+
+    regexp = "^((#{q}[^#{q}]*#{q})|([^#{d}#{q}]*))(#{d}((#{q}[^#{q}]*#{q})|([^#{d}#{q}]*))){#{c}}$"
 
     command = "egrep '#{regexp}' '#{f}' >'#{corrected_file}'; chmod 777 #{corrected_file}"
     command = "ssh #{remote_host} \"#{command}\"" if remote_host
-
     system(command)
 
     working_files << corrected_file
     self.processed = corrected_file
   end
+
+  def egrep_escape(char)
+    posix_ext_regex_meta_chars = %w{. ^ $ | \\ ? * + [ ( ) { } }
+    if posix_ext_regex_meta_chars.include? char
+      '\\' + char
+    elsif char == "'"
+      "'\\''"
+    else
+      char
+    end
+  end
+  private :egrep_escape
 
   def load_file_commands
     [create_temp_table_sql,
@@ -75,7 +88,7 @@ class VoterFile::CSVDriver::CSVFile
           DELIMITER '#{delimiter}',
           HEADER true,
           ENCODING 'LATIN1',
-          QUOTE '#{quote}');}
+          QUOTE '#{quote == "'" ? "''" : quote}');}
   end
 
   def name

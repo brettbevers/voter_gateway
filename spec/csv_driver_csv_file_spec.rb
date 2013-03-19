@@ -40,6 +40,22 @@ describe VoterFile::CSVDriver::CSVFile do
       subject.remove_malformed_rows
       File.open(subject.path, 'r').read.should == "header 1,header 2,header 3\ndata 1,data 2,data 3\n"
     end
+
+    it "ignores the delimiter inside quoted fields" do
+      File.open(test_file_path, 'w') { |f| f << "'header 1','header 2','header 3'\n'data, 1','data, 2','data, 3'" }
+      subject.delimiter = ","
+      subject.quote = "'"
+      subject.remove_malformed_rows
+      File.open(subject.path, 'r').read.should == "'header 1','header 2','header 3'\n'data, 1','data, 2','data, 3'\n"
+    end
+
+    it "matches on mixed quoted and unquoted fields" do
+      File.open(test_file_path, 'w') { |f| f << "'header 1',header 2,'header 3'\ndata 1,'data, 2',data 3" }
+      subject.delimiter = ","
+      subject.quote = "'"
+      subject.remove_malformed_rows
+      File.open(subject.path, 'r').read.should == "'header 1',header 2,'header 3'\ndata 1,'data, 2',data 3\n"
+    end
   end
 
   describe "#load_file_commands" do
