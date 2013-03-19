@@ -46,7 +46,8 @@ Gem::Specification.new do |s|
     "spec/csv_driver_working_table_spec.rb",
     "spec/import_job_base_spec.rb",
     "spec/merge_audit_spec.rb",
-    "spec/spec_helper.rb"
+    "spec/spec_helper.rb",
+    "voter-gateway.gemspec"
   ]
   s.homepage = "http://github.com/3dna/voter-gateway"
   s.licenses = ["MIT"]
