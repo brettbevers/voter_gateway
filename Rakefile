@@ -15,10 +15,10 @@ require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "voter-gateway"
-  gem.homepage = "http://github.com/brettbevers/voter-gateway"
+  gem.homepage = "http://github.com/3dna/voter-gateway"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{A database gateway for importing and merging records.}
+  #gem.description = %Q{TODO: longer description of your gem}
   gem.email = "brett@nationbuilder.com"
   gem.authors = ["brettbevers"]
   # dependencies defined in Gemfile

@@ -1,6 +1,4 @@
 class VoterFile::CSVDriver::CSVFile
-  require 'csv'
-
   attr_accessor :original, :processed, :delimiter, :quote, :working_table, :working_files, :remote_host
 
   DEFAULT_DELIMITER = ','

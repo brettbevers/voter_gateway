@@ -1,5 +1,3 @@
-require 'ostruct'
-
 module VoterFile
   class DatabaseAudit < CSVDriver
     attr_accessor :state

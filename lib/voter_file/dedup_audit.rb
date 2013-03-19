@@ -1,6 +1,4 @@
 module VoterFile
-  require 'voter_file/merge_audit'
-  require 'voter_file/dedup_driver'
 
   class DedupAudit < DedupDriver
     attr_reader :audit_results
