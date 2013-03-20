@@ -114,13 +114,13 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  awesome_print
-  bundler
+  awesome_print (~> 1.1.0)
+  bundler (~> 1.0)
   jeweler (~> 1.8.4)
   pry
   pry-nav
   pry-rails
   rails (~> 3.2.13)
   rdoc (~> 3.4)
-  rspec
-  simplecov
+  rspec (~> 2.0)
+  simplecov (~> 0.7.1)
