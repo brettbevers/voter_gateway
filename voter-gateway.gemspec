@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "voter-gateway"
-  s.version = "0.1.0"
+  s.version = "0.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["brettbevers"]
-  s.date = "2013-03-19"
+  s.date = "2013-03-20"
   s.email = "brett@nationbuilder.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
@@ -61,22 +61,22 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<rails>, ["~> 3.2.13"])
       s.add_runtime_dependency(%q<rdoc>, ["~> 3.4"])
-      s.add_runtime_dependency(%q<bundler>, [">= 0"])
+      s.add_runtime_dependency(%q<bundler>, ["~> 1.0"])
       s.add_runtime_dependency(%q<jeweler>, ["~> 1.8.4"])
-      s.add_runtime_dependency(%q<simplecov>, [">= 0"])
-      s.add_development_dependency(%q<rspec>, [">= 0"])
-      s.add_development_dependency(%q<awesome_print>, [">= 0"])
+      s.add_runtime_dependency(%q<simplecov>, ["~> 0.7.1"])
+      s.add_development_dependency(%q<rspec>, ["~> 2.0"])
+      s.add_development_dependency(%q<awesome_print>, ["~> 1.1.0"])
       s.add_development_dependency(%q<pry>, [">= 0"])
       s.add_development_dependency(%q<pry-nav>, [">= 0"])
       s.add_development_dependency(%q<pry-rails>, [">= 0"])
     else
       s.add_dependency(%q<rails>, ["~> 3.2.13"])
       s.add_dependency(%q<rdoc>, ["~> 3.4"])
-      s.add_dependency(%q<bundler>, [">= 0"])
+      s.add_dependency(%q<bundler>, ["~> 1.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
-      s.add_dependency(%q<simplecov>, [">= 0"])
-      s.add_dependency(%q<rspec>, [">= 0"])
-      s.add_dependency(%q<awesome_print>, [">= 0"])
+      s.add_dependency(%q<simplecov>, ["~> 0.7.1"])
+      s.add_dependency(%q<rspec>, ["~> 2.0"])
+      s.add_dependency(%q<awesome_print>, ["~> 1.1.0"])
       s.add_dependency(%q<pry>, [">= 0"])
       s.add_dependency(%q<pry-nav>, [">= 0"])
       s.add_dependency(%q<pry-rails>, [">= 0"])
@@ -84,11 +84,11 @@ Gem::Specification.new do |s|
   else
     s.add_dependency(%q<rails>, ["~> 3.2.13"])
     s.add_dependency(%q<rdoc>, ["~> 3.4"])
-    s.add_dependency(%q<bundler>, [">= 0"])
+    s.add_dependency(%q<bundler>, ["~> 1.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
-    s.add_dependency(%q<simplecov>, [">= 0"])
-    s.add_dependency(%q<rspec>, [">= 0"])
-    s.add_dependency(%q<awesome_print>, [">= 0"])
+    s.add_dependency(%q<simplecov>, ["~> 0.7.1"])
+    s.add_dependency(%q<rspec>, ["~> 2.0"])
+    s.add_dependency(%q<awesome_print>, ["~> 1.1.0"])
     s.add_dependency(%q<pry>, [">= 0"])
     s.add_dependency(%q<pry-nav>, [">= 0"])
     s.add_dependency(%q<pry-rails>, [">= 0"])
