@@ -112,7 +112,7 @@ module VoterFile
       def coverage_for_header_sql(header)
         %Q{
           SELECT COUNT(*) FROM #{working_table.name}
-            WHERE #{header} IS NOT NULL AND trim(#{header}) <> '';}
+            WHERE "#{header}" IS NOT NULL AND trim("#{header}") <> '';}
       end
 
       def total_count_sql
