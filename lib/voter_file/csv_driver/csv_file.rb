@@ -74,7 +74,7 @@ class VoterFile::CSVDriver::CSVFile
 
   # create temporary table for raw data using fields from csv  (all text types)
   def create_temp_table_sql
-    raw_csv_schema = headers.map { |h| "#{h} TEXT" }.join(', ')
+    raw_csv_schema = headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
     %Q{
       DROP TABLE IF EXISTS #{working_table.name};
       CREATE TABLE #{working_table.name} (#{raw_csv_schema});}

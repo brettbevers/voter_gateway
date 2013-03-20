@@ -77,7 +77,7 @@ describe VoterFile::CSVDriver::CSVFile do
       temp_table_sql = subject.create_temp_table_sql
 
       temp_table_sql.should include "DROP TABLE IF EXISTS working_table"
-      temp_table_sql.should include "CREATE TABLE working_table (header1 TEXT, header2 TEXT, header3 TEXT)"
+      temp_table_sql.should include "CREATE TABLE working_table (\"header1\" TEXT, \"header2\" TEXT, \"header3\" TEXT)"
     end
 
   end
