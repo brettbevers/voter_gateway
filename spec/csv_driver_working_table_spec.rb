@@ -21,7 +21,7 @@ describe VoterFile::CSVDriver::WorkingTable do
     it "returns an array of sql schema declarations" do
       subject.add_column "col_1", :type => :INT
       subject.add_column "col_2", :type => :TEXT
-      subject.schema.should == ["col_1 INT", "col_2 TEXT"]
+      subject.schema.should == ["\"col_1\" INT", "\"col_2\" TEXT"]
     end
 
     it "refers to the target_table if one is set" do
@@ -86,7 +86,7 @@ describe VoterFile::CSVDriver::WorkingTable do
 
     it "should substitute the 'from' column for '$' in the resulting converter" do
       subject.map_column "col_1", :from => "count", :type => :INT, :as => '$ + 1'
-      subject.column_converters.first.should == "count + 1"
+      subject.column_converters.first.should == "\"count\" + 1"
     end
 
     it "should use 'as' option if no 'from' is specified" do
@@ -113,13 +113,13 @@ describe VoterFile::CSVDriver::WorkingTable do
   describe "#insert_from_sql" do
     before do
       subject.should_receive(:mapped_column_names).and_return ["col_1", "col_2"]
-      subject.should_receive(:column_converters).and_return ["col_1::TEXT", "col_2::TEXT"]
+      subject.should_receive(:column_converters).and_return ["\"col_1\"::TEXT", "\"col_2\"::TEXT"]
     end
 
     let(:sql) { subject.insert_from_sql "raw_csv_tmp" }
     it "should construct the insert command in SQL" do
-      sql.should match /INSERT INTO #{test_table_name}.*col_1, col_2/i
-      sql.should match /SELECT col_1::TEXT, col_2::TEXT/
+      sql.should match /INSERT INTO #{test_table_name}.*"col_1", "col_2"/i
+      sql.should match /SELECT "col_1"::TEXT, "col_2"::TEXT/
       sql.should match /FROM raw_csv_tmp/
       sql.should_not match /GROUP BY/i
     end
@@ -131,7 +131,7 @@ describe VoterFile::CSVDriver::WorkingTable do
 
     it "should add a 'where' clause if column constraints are specified" do
       subject.should_receive(:column_constraints).at_least(1).times.and_return([[:col_1, "$ IS NOT NULL"], [:col_2, "$ > 1"]])
-      sql.should include "WHERE ( col_1 IS NOT NULL AND col_2 > 1 )"
+      sql.should include "WHERE ( \"col_1\" IS NOT NULL AND \"col_2\" > 1 )"
     end
   end
 
@@ -148,9 +148,9 @@ describe VoterFile::CSVDriver::WorkingTable do
                                                     matching_col)
 
       sql.should match /UPDATE target_table AS nv/
-      sql.should match /SET copy_col = v.copy_col/
+      sql.should match /SET "copy_col" = v."copy_col"/
       sql.should match /FROM source_table AS v/
-      sql.should match /WHERE nv.matching_col = v.matching_col/
+      sql.should match /WHERE nv."matching_col" = v."matching_col"/
     end
   end
 
@@ -204,7 +204,7 @@ describe VoterFile::CSVDriver::WorkingTable do
   describe "#column_constraint_conditions" do
     it "should return the conjunction of column constraints" do
       subject.stub(:column_constraints => [[:col_1, "$ IS NOT NULL"], [:col_2, "$ > 1"]])
-      subject.column_constraint_conditions.should == "( col_1 IS NOT NULL AND col_2 > 1 )"
+      subject.column_constraint_conditions.should == "( \"col_1\" IS NOT NULL AND \"col_2\" > 1 )"
     end
   end
 end

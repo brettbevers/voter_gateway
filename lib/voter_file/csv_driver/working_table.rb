@@ -33,7 +33,7 @@ class VoterFile::CSVDriver::WorkingTable
 
   def insert_from_sql(table_name)
     sql = %Q{
-            INSERT INTO #{name} (#{mapped_column_names.join(", ")})
+            INSERT INTO #{name} ("#{mapped_column_names.join('", "')}")
             SELECT #{column_converters.join(", ")}
             FROM #{table_name}\n}
     unless column_constraints.empty?
@@ -52,9 +52,9 @@ class VoterFile::CSVDriver::WorkingTable
   def copy_column_from_table_to_table(source_table_name, target_table_name, copy_col, matching_col)
     %Q{
       UPDATE #{target_table_name} AS nv
-      SET #{copy_col} = v.#{copy_col}
+      SET "#{copy_col}" = v."#{copy_col}"
       FROM #{source_table_name} AS v
-      WHERE nv.#{matching_col} = v.#{matching_col};}
+      WHERE nv."#{matching_col}" = v."#{matching_col}";}
   end
 
       def prepare_for_geocoding_commands
@@ -100,7 +100,7 @@ class VoterFile::CSVDriver::WorkingTable
       s << "LIKE #{target_table.name}"
     else
       table_columns.each do |col|
-        s << "#{col[:name]} #{col[:type]}"
+        s << "\"#{col[:name]}\" #{col[:type]}"
       end
       return s
     end
@@ -136,7 +136,7 @@ class VoterFile::CSVDriver::WorkingTable
 
     # record column converter
     if opts[:from]
-      column_converters << opts[:as].gsub("$", opts[:from])
+      column_converters << opts[:as].gsub("$", "\"#{opts[:from]}\"")
     else
       column_converters << opts[:as]
     end
@@ -163,6 +163,6 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def column_constraint_conditions
-    "( " + column_constraints.map{|c| c[1].gsub('$', c[0].to_s) }.join(" AND ") + " )"
+    "( " + column_constraints.map{|c| c[1].gsub('$', "\"#{c[0]}\"") }.join(" AND ") + " )"
   end
 end
