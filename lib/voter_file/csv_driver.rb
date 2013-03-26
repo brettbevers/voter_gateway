@@ -77,10 +77,12 @@ module VoterFile
       working_tables.each do |table|
         db_connection.execute table.drop
       end
+      self.working_tables = []
 
       working_files.each do |file|
         file.close
       end
+      self.working_files = []
     end
 
     def load_file(path)
