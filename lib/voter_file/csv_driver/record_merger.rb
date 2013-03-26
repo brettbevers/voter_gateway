@@ -65,12 +65,19 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     return nil if is_update_only
 
     match_conditions = ''
-    match_conditions = "AND #{column_constraint_conditions}" if column_constraint_conditions
+    match_conditions = "AND #{insert_constraint_conditions}" if insert_constraint_conditions
 
     %Q{ INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
               SELECT #{insert_columns.join(', ')}
               FROM #{working_source_table.name} s
               WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions}; }
+  end
+
+  def insert_constraint_conditions
+    constraints = column_constraints
+    constraints.delete_if { |c| c[1].include? '$T' }
+    return nil if constraints.empty?
+    "( " + column_constraints.map{|c| c[1].gsub('$S', "s.#{c[0]}").gsub('$T', "t.#{c[0]}") }.join(" AND ") + " )"
   end
 
   def update_columns

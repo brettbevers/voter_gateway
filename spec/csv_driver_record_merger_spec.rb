@@ -161,7 +161,7 @@ describe VoterFile::CSVDriver::RecordMerger do
                    :update_columns => ["column1", "column2"],
                    :insert_columns => ["column3", "column4"],
                    :update_values => ["value1", "value2"],
-                   :column_constraints => [["col_1", "$S IS NOT NULL"], ["col_2", "$S > 2"]])
+                   :column_constraints => [["col_1", "$S IS NOT NULL"], ["col_2", "$S > 2"], ["col_3", "$T = $S"]])
     end
 
     describe "#find_exact_match_sql" do
@@ -171,7 +171,7 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "SET #{target_key_name} = t.column1"
         sql.should include "FROM target_table t"
         sql.should include "WHERE s.#{target_key_name} IS NULL AND ( ( s.column2 = t.column2 AND t.column2 IS NOT NULL )"
-        sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 )"
+        sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 AND t.col_3 = s.col_3 )"
         sql.should include " AND ( s.column3 = t.column3 AND t.column3 IS NOT NULL ) )"
       end
 
@@ -217,7 +217,7 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "ORDER BY s.column4 <-> t.column4"
         sql.should include "LIMIT 1 )"
         sql.should include "WHERE s.#{target_key_name} IS NULL"
-        sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 )"
+        sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 AND t.col_3 = s.col_3 )"
       end
     end
 
