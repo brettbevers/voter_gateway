@@ -1,6 +1,6 @@
 class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
 
-  attr_accessor :column_map, :merge_expressions, :preserved_columns,
+  attr_accessor :column_map, :merge_expressions, :return_expressions, :preserved_columns,
                 :excluded_columns, :is_update_only, :is_insert_only
 
   def initialize(working_source_table, working_target_table)
@@ -9,6 +9,7 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     @excluded_columns = []
     @column_map = {}
     @merge_expressions = {}
+    @return_expressions = {}
   end
 
   def exclude_column(*col_names)
@@ -31,6 +32,10 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     merge_expressions[col_name.to_sym] = expression
   end
 
+  def return_value_to_source(return_expression, column)
+    return_expressions[return_expression] = column
+  end
+
   def update_only
     self.is_update_only = true
   end
@@ -48,17 +53,32 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   def update_target_records_sql
     return nil if is_insert_only
 
+    update_sql = %Q{
+      UPDATE #{target_table.name} t
+        SET ( #{update_columns.join(', ')} ) =
+          ( #{update_values.join(', ')} )
+        FROM #{working_source_table.name} s
+        WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key}
+        RETURNING s.#{SOURCE_KEY_NAME}}
+
+    unless return_expressions.empty?
+      update_sql = %Q{
+        WITH rows as (
+          #{update_sql}#{returned_expressions_list}
+        ) UPDATE #{source_table.name} t
+            SET ( #{returned_columns_list} ) =
+              ( #{returned_values_list} )
+            FROM rows
+            WHERE rows.#{source_table.primary_key} = t.#{source_table.primary_key}
+            RETURNING rows.#{SOURCE_KEY_NAME}}
+    end
+
     %Q{
-      WITH updated_rows as (
-        UPDATE #{target_table.name} t
-          SET ( #{update_columns.join(', ')} ) =
-            ( #{update_values.join(', ')} )
-          FROM #{working_source_table.name} s
-          WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key}
-          RETURNING s.#{SOURCE_KEY_NAME}
+      WITH delete_rows as (
+        #{update_sql}
       ) DELETE FROM #{working_source_table.name} s
-          USING updated_rows
-          WHERE s.#{SOURCE_KEY_NAME} = updated_rows.#{SOURCE_KEY_NAME}; }
+          USING delete_rows
+          WHERE s.#{SOURCE_KEY_NAME} = delete_rows.#{SOURCE_KEY_NAME}; }
   end
 
   def insert_remaining_sql
@@ -67,10 +87,23 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     match_conditions = ''
     match_conditions = "AND #{insert_constraint_conditions}" if insert_constraint_conditions
 
-    %Q{ INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
-              SELECT #{insert_columns.join(', ')}
-              FROM #{working_source_table.name} s
-              WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions}; }
+    insert_sql = %Q{
+      INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
+        SELECT #{insert_columns.join(', ')}
+        FROM #{working_source_table.name} s
+        WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions}; }
+
+    unless return_expressions.empty?
+      insert_sql = %Q{
+        WITH rows as (
+          #{insert_sql}
+        ) UPDATE #{source_table.name} t
+            SET ( #{returned_columns_list} ) =
+              ( #{returned_values_list} )
+            FROM rows
+            WHERE rows.#{source_table.primary_key} = t.#{source_table.primary_key} }
+    end
+    return insert_sql
   end
 
   def insert_constraint_conditions
@@ -103,4 +136,21 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   def insert_columns
     source_table.table_column_names - excluded_columns
   end
+
+  def returned_expressions_list
+    list = "s.#{source_table.primary_key}"
+    return_expressions.each_with_index do |k,v,i|
+      list << ", #{k} as col_#{i}"
+    end
+    return list
+  end
+
+  def returned_values_list
+    (0...return_expressions.length).to_a.map{|v| "rows.col_#{v}"}.join(', ')
+  end
+
+  def returned_columns_list
+    return_expressions.values.join(', ')
+  end
+
 end

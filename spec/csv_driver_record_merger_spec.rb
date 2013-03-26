@@ -188,7 +188,7 @@ describe VoterFile::CSVDriver::RecordMerger do
     describe "#update_target_records_sql" do
       let(:sql) { subject.update_target_records_sql }
       it "generates the right SQL lines" do
-        sql.should include "WITH updated_rows as ("
+        sql.should include "WITH delete_rows as ("
         sql.should include "UPDATE target_table"
         sql.should include "SET ( column1, column2 ) ="
         sql.should include "( value1, value2 )"
@@ -196,8 +196,8 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "WHERE s.#{target_key_name} = t.column1"
         sql.should include "RETURNING s.working_source_id"
         sql.should include ") DELETE FROM working_source_table s"
-        sql.should include "USING updated_rows"
-        sql.should include "WHERE s.working_source_id = updated_rows.working_source_id; "
+        sql.should include "USING delete_rows"
+        sql.should include "WHERE s.working_source_id = delete_rows.working_source_id; "
       end
 
       it "returns nil when insert only" do
