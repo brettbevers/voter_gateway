@@ -46,13 +46,13 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def copy_column(column_name, options)
-    copy_column_from_table_to_table(options[:from].name, self.name, column_name, options[:key])
+    map_column_from_table(options[:from].name, column_name, column_name, options[:key])
   end
 
-  def copy_column_from_table_to_table(source_table_name, target_table_name, copy_col, matching_col)
+  def map_column_from_table(source_table_name, source_col, target_col, matching_col)
     %Q{
-      UPDATE #{target_table_name} AS nv
-      SET "#{copy_col}" = v."#{copy_col}"
+      UPDATE #{self.name} AS nv
+      SET "#{target_col}" = v."#{source_col}"
       FROM #{source_table_name} AS v
       WHERE nv."#{matching_col}" = v."#{matching_col}";}
   end

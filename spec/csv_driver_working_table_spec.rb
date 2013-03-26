@@ -138,19 +138,19 @@ describe VoterFile::CSVDriver::WorkingTable do
   describe "#copy_column_from_table_to_table" do
     it "should return correct SQL for copying a column" do
       source_table_name = "source_table"
-      target_table_name = "target_table"
-      copy_col = "copy_col"
+      source_col = "source_col"
+      target_col = "target_col"
       matching_col = "matching_col"
 
-      sql = subject.copy_column_from_table_to_table(source_table_name,
-                                                    target_table_name,
-                                                    copy_col,
+      sql = subject.map_column_from_table(source_table_name,
+                                                    source_col,
+                                                    target_col,
                                                     matching_col)
 
-      sql.should match /UPDATE target_table AS nv/
-      sql.should match /SET "copy_col" = v."copy_col"/
-      sql.should match /FROM source_table AS v/
-      sql.should match /WHERE nv."matching_col" = v."matching_col"/
+      sql.should include "UPDATE test_table AS nv"
+      sql.should include "SET \"target_col\" = v.\"source_col\""
+      sql.should include "FROM source_table AS v"
+      sql.should include "WHERE nv.\"matching_col\" = v.\"matching_col\""
     end
   end
 

@@ -172,6 +172,11 @@ module VoterFile
       db_connection.execute(sql)
     end
 
+    def map_column(target_col, opts)
+      sql = opts[:target].map_column_from_table(opts[:source].name, opts[:from], target_col, opts[:key])
+      db_connection.execute(sql)
+    end
+
     def get_count(sql)
       result = db_connection.execute(sql)
       result.field_values("count").first.to_i
