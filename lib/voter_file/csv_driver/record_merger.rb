@@ -58,27 +58,21 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
         SET ( #{update_columns.join(', ')} ) =
           ( #{update_values.join(', ')} )
         FROM #{working_source_table.name} s
-        WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key}
-        RETURNING s.#{SOURCE_KEY_NAME}}
+        WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key}}
 
     unless return_expressions.empty?
       update_sql = %Q{
         WITH rows as (
-          #{update_sql}#{returned_expressions_list}
+          #{update_sql}
+          RETURNING s.#{source_table.primary_key} #{returned_expressions_list}
         ) UPDATE #{source_table.name} t
             SET ( #{returned_columns_list} ) =
               ( #{returned_values_list} )
             FROM rows
-            WHERE rows.#{source_table.primary_key} = t.#{source_table.primary_key}
-            RETURNING rows.#{SOURCE_KEY_NAME}}
+            WHERE rows.#{source_table.primary_key} = t.#{source_table.primary_key}}
     end
 
-    %Q{
-      WITH delete_rows as (
-        #{update_sql}
-      ) DELETE FROM #{working_source_table.name} s
-          USING delete_rows
-          WHERE s.#{SOURCE_KEY_NAME} = delete_rows.#{SOURCE_KEY_NAME}; }
+    return update_sql
   end
 
   def insert_remaining_sql
@@ -91,12 +85,13 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
       INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
         SELECT #{insert_columns.join(', ')}
         FROM #{working_source_table.name} s
-        WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions}; }
+        WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions} }
 
     unless return_expressions.empty?
       insert_sql = %Q{
         WITH rows as (
           #{insert_sql}
+          RETURNING #{source_table.primary_key} #{insert_returned_expressions_list}
         ) UPDATE #{source_table.name} t
             SET ( #{returned_columns_list} ) =
               ( #{returned_values_list} )
@@ -138,11 +133,15 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   end
 
   def returned_expressions_list
-    list = "s.#{source_table.primary_key}"
-    return_expressions.each_with_index do |k,v,i|
-      list << ", #{k} as col_#{i}"
+    list = ''
+    return_expressions.each_with_index do |pair,i|
+      list << ", #{pair[0]} as col_#{i}"
     end
     return list
+  end
+
+  def insert_returned_expressions_list
+    returned_expressions_list.gsub('t.', '').gsub('s.', '')
   end
 
   def returned_values_list
