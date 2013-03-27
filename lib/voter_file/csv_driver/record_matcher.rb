@@ -19,6 +19,10 @@ class VoterFile::CSVDriver::RecordMatcher
     self.exact_match_groups << col_names.map(&:to_sym)
   end
 
+  def foreign_key_match(map)
+    exact_match_groups << [ map ]
+  end
+
   def fuzzy_match_column(*col_names)
     self.fuzzy_match_columns += col_names.map(&:to_sym)
   end
@@ -109,8 +113,14 @@ class VoterFile::CSVDriver::RecordMatcher
 
   def exact_match_conditions(column_group)
     conditions = column_group.map do |c|
-      "( s.#{c} = t.#{c} AND t.#{c} IS NOT NULL )"
+      case c
+        when Hash
+          "( s.#{c[:source_key]} = t.#{c[:target_key]} AND t.#{c[:target_key]} IS NOT NULL )"
+        else
+          "( s.#{c} = t.#{c} AND t.#{c} IS NOT NULL )"
+      end
     end
+
     "( #{conditions.join(" AND ")} )"
   end
 
