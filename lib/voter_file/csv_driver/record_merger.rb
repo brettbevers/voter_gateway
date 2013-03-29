@@ -1,6 +1,6 @@
 class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
 
-  attr_accessor :column_map, :merge_expressions, :return_expressions, :preserved_columns,
+  attr_accessor :column_map, :merge_expressions, :insert_expressions, :return_expressions, :preserved_columns,
                 :excluded_columns, :is_update_only, :is_insert_only
 
   def initialize(working_source_table, working_target_table)
@@ -9,27 +9,34 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     @excluded_columns = []
     @column_map = {}
     @merge_expressions = {}
+    @insert_expressions = {}
     @return_expressions = {}
   end
 
   def exclude_column(*col_names)
     self.excluded_columns += col_names.map(&:to_sym)
   end
+
   alias :exclude_columns :exclude_column
 
   def preserve_column(*col_name)
     self.preserved_columns += col_name.map(&:to_sym)
   end
+
   alias :preserve_columns :preserve_column
 
   def move_columns(col_map)
-    col_map.each do |k,v|
+    col_map.each do |k, v|
       column_map[k.to_sym] = v.to_sym
     end
   end
 
   def merge_column_as(col_name, expression)
     merge_expressions[col_name.to_sym] = expression
+  end
+
+  def insert_column_as(col_name, expression)
+    insert_expressions[col_name.to_sym] = expression
   end
 
   def return_value_to_source(return_expression, column)
@@ -45,9 +52,9 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   end
 
   def merge_commands
-    ( match_commands +
-    [ update_target_records_sql,
-      insert_remaining_sql ]).compact
+    (match_commands +
+        [update_target_records_sql,
+         insert_remaining_sql]).compact
   end
 
   def update_target_records_sql
@@ -105,15 +112,15 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     constraints = column_constraints
     constraints.delete_if { |c| c[1].include? '$T' }
     return nil if constraints.empty?
-    "( " + column_constraints.map{|c| c[1].gsub('$S', "s.#{c[0]}").gsub('$T', "t.#{c[0]}") }.join(" AND ") + " )"
+    "( " + column_constraints.map { |c| c[1].gsub('$S', "s.#{c[0]}").gsub('$T', "t.#{c[0]}") }.join(" AND ") + " )"
   end
 
   def update_columns
-    column_map.values + merge_expressions.keys + correlated_columns
+    column_map.values + merge_expressions.keys + correlated_update_columns
   end
 
   def update_values
-    column_map.keys.map{|k| "t.#{k}"} + merge_expressions_values + correlated_columns.map{|c| "s.#{c}"}
+    column_map.keys.map { |k| "t.#{k}" } + merge_expressions_values + correlated_update_columns.map { |c| "s.#{c}" }
   end
 
   def merge_expressions_values
@@ -124,17 +131,33 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     return values
   end
 
-  def correlated_columns
-    source_table.table_column_names - ( excluded_columns + preserved_columns + merge_expressions.keys + column_map.values.map(&:to_sym) )
+  def correlated_update_columns
+    source_table.table_column_names - (excluded_columns + preserved_columns + merge_expressions.keys + column_map.values.map(&:to_sym))
   end
 
   def insert_columns
-    source_table.table_column_names - excluded_columns
+    insert_expressions.keys + correlated_insert_columns
+  end
+
+  def correlated_insert_columns
+    source_table.table_column_names - (excluded_columns + insert_expressions.keys)
+  end
+
+  def insert_values
+    insert_expressions_values + correlated_insert_columns.map { |c| "s.#{c}"}
+  end
+
+  def insert_expressions_values
+    values = []
+    insert_expressions.each do |key, value|
+      values << value.gsub('$S', "s.#{key}")
+    end
+    return values
   end
 
   def returned_expressions_list
     list = ''
-    return_expressions.each_with_index do |pair,i|
+    return_expressions.each_with_index do |pair, i|
       list << ", #{pair[0]} as col_#{i}"
     end
     return list
@@ -145,7 +168,7 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   end
 
   def returned_values_list
-    (0...return_expressions.length).to_a.map{|v| "rows.col_#{v}"}.join(', ')
+    (0...return_expressions.length).to_a.map { |v| "rows.col_#{v}" }.join(', ')
   end
 
   def returned_columns_list

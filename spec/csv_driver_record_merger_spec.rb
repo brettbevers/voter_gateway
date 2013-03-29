@@ -13,8 +13,10 @@ describe VoterFile::CSVDriver::RecordMerger do
 
     before do
       subject.stub(:column_map => {column1: "column2"})
-      subject.stub(:correlated_columns => [:column3])
+      subject.stub(:correlated_update_columns => [:column3])
+      subject.stub(:correlated_insert_columns => [:column4, :column3])
       subject.stub(:merge_expressions => {column4: "$S + 100"})
+      subject.stub(:insert_expressions => {foo: "s.column2 * 2"})
     end
 
     describe "#exact_match_group" do
@@ -86,17 +88,14 @@ describe VoterFile::CSVDriver::RecordMerger do
     end
 
     describe "#update_columns" do
-
       it "returns the columns that will be updated" do
         update_columns = subject.update_columns
 
         update_columns.should == ["column2", :column4, :column3]
       end
-
     end
 
     describe "#update_values" do
-
       it "returns a list of SQL expressions that will be used for updates" do
         subject.stub(:target_table => stub(:name => "target_table"))
         subject.stub(:working_source_table => stub(:name => "working_table"))
@@ -105,34 +104,49 @@ describe VoterFile::CSVDriver::RecordMerger do
 
         update_values.should == ["t.column1", "s.column4 + 100", "s.column3"]
       end
+    end
 
+    describe "#insert_columns" do
+      it "returns the columns that will be inserted" do
+        insert_columns = subject.insert_columns
+
+        insert_columns.should == [:foo, :column4, :column3]
+      end
+    end
+
+    describe "#insert_values" do
+      it "returns a list of SQL expressions that will be used for inserts" do
+        subject.stub(:target_table => stub(:name => "target_table"))
+
+        insert_values = subject.insert_values
+
+        insert_values.should == ["s.column2 * 2", "s.column4", "s.column3"]
+      end
     end
 
   end
 
-  describe "#correlated_columns" do
+  describe "#correlated_update_columns" do
 
     it "returns list of columns that should be updated directly from the source file" do
       subject.stub(:source_table => stub(:table_column_names => [:column1, :column2, :column3, :column4]))
       subject.stub(:excluded_columns => [:column2], :preserved_columns => [:column3], :merge_expressions => {:column4 => 'lower(source_table.$)'})
 
-      correlated_columns = subject.correlated_columns
+      correlated_columns = subject.correlated_update_columns
 
       correlated_columns.should == [:column1]
     end
 
   end
 
-  describe "#insert_columns" do
-
+  describe "#correlated_insert_columns" do
     it "returns the source table's columns that are not excluded" do
-      subject.stub(:source_table => stub(:table_column_names => ["column1", "column2", "column3"]))
-      subject.stub(:excluded_columns => ["column2"], :preserved_columns => ["column3"])
-      insert_columns = subject.insert_columns
+      subject.stub(:source_table => stub(:table_column_names => [:column1, :column2, :column3]))
+      subject.stub(:excluded_columns => [:column2], :preserved_columns => [:column3], :insert_expressions => {:column3 => "lower($S)"})
+      insert_columns = subject.correlated_insert_columns
 
-      insert_columns.should == ["column1", "column3"]
+      insert_columns.should == [:column1]
     end
-
   end
 
   describe "#match_conditions" do
