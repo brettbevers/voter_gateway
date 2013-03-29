@@ -90,7 +90,7 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
 
     insert_sql = %Q{
       INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
-        SELECT #{insert_columns.join(', ')}
+        SELECT #{insert_values.join(', ')}
         FROM #{working_source_table.name} s
         WHERE s.#{TARGET_KEY_NAME} IS NULL #{match_conditions} }
 
