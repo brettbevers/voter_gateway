@@ -42,7 +42,7 @@ module VoterFile
 }}
 
     def initialize
-      @db_connection = ActiveRecord::Base.connection unless Rails.env == 'test'
+      @db_connection = ActiveRecord::Base.connection unless Rails.env == 'voter_gateway_test'
       @merge_records_adapter = RecordMerger
       @working_tables = []
       @working_files = []

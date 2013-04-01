@@ -6,7 +6,7 @@ require 'voter-gateway'
 
 module Rails
   def self.env
-    'test'
+    'voter_gateway_test'
   end
 end
 
