@@ -175,6 +175,7 @@ describe VoterFile::CSVDriver::RecordMerger do
                    :update_columns => ["column1", "column2"],
                    :insert_columns => ["column3", "column4"],
                    :update_values => ["value1", "value2"],
+                   :insert_values => ["value3", "value4"],
                    :column_constraints => [["col_1", "$S IS NOT NULL"], ["col_2", "$S > 2"], ["col_3", "$T = $S"]])
     end
 
@@ -234,7 +235,7 @@ describe VoterFile::CSVDriver::RecordMerger do
       let(:sql) { subject.insert_remaining_sql }
       it "returns SQL for inserting remaining rows from the working_table" do
         sql.should include "INSERT INTO target_table ( column3, column4 )"
-        sql.should include "SELECT column3, column4"
+        sql.should include "SELECT value3, value4"
         sql.should include "FROM working_source_table"
         sql.should include "WHERE s.working_target_id IS NULL AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 )"
       end
