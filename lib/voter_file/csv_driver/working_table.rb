@@ -49,12 +49,18 @@ class VoterFile::CSVDriver::WorkingTable
     map_column_from_table(options[:from].name, column_name, column_name, options[:key])
   end
 
-  def map_column_from_table(source_table_name, source_col, target_col, matching_col)
+  def map_column_from_table(source_table_name, source_col, target_col, matching_col, as_expression=nil)
+    if as_expression
+      value = as_expression.gsub('$S', "s.#{source_col}").gsub('$T', "t.#{target_col}")
+    else
+      value = "s.#{source_col}"
+    end
+
     %Q{
-      UPDATE #{self.name} AS nv
-      SET "#{target_col}" = v."#{source_col}"
-      FROM #{source_table_name} AS v
-      WHERE nv."#{matching_col}" = v."#{matching_col}";}
+      UPDATE #{self.name} AS t
+      SET "#{target_col}" = #{value}
+      FROM #{source_table_name} AS s
+      WHERE t."#{matching_col}" = s."#{matching_col}";}
   end
 
       def prepare_for_geocoding_commands

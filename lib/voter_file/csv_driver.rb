@@ -173,7 +173,7 @@ module VoterFile
     end
 
     def map_column(target_col, opts)
-      sql = opts[:target].map_column_from_table(opts[:source].name, opts[:from], target_col, opts[:key])
+      sql = opts[:target].map_column_from_table(opts[:source].name, opts[:from], target_col, opts[:key], opts[:as])
       db_connection.execute(sql)
     end
 
