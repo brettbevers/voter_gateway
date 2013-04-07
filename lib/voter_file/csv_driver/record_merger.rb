@@ -3,7 +3,7 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   attr_accessor :column_map, :merge_expressions, :insert_expressions, :return_expressions, :preserved_columns,
                 :excluded_columns, :is_update_only, :is_insert_only
 
-  def initialize(working_source_table, working_target_table)
+  def initialize
     super
     @preserved_columns = []
     @excluded_columns = []

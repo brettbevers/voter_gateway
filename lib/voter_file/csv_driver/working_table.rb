@@ -51,9 +51,9 @@ class VoterFile::CSVDriver::WorkingTable
 
   def map_column_from_table(source_table_name, source_col, target_col, matching_col, as_expression=nil)
     if as_expression
-      value = as_expression.gsub('$S', "s.#{source_col}").gsub('$T', "t.#{target_col}")
+      value = as_expression.gsub('$S', "s.\"#{source_col}\"").gsub('$T', "t.\"#{target_col}\"")
     else
-      value = "s.#{source_col}"
+      value = "s.\"#{source_col}\""
     end
 
     %Q{

@@ -33,7 +33,7 @@ describe VoterFile::MergeAudit::AuditMerger do
 
   let!(:working_source_table) { stub(:name => 'source_table') }
   let!(:working_target_table) { stub(:name => 'target_table') }
-  let!(:subject) { VoterFile::MergeAudit::AuditMerger.new(working_source_table, working_target_table) }
+  let!(:subject) { VoterFile::MergeAudit::AuditMerger.new { working_source_table } }
 
   before do
     subject.stub(:target_table => stub(:name => "target_table", :primary_key => :column1, :primary_key_type => :INT),
@@ -69,13 +69,12 @@ describe VoterFile::MergeAudit::AuditMerger do
 
   describe "#merge_commands" do
     it "executes the merging script provided by the merger" do
-      sql1, sql2, sql3 = stub, stub, stub
+      sql1, sql3 = stub, stub
 
       subject.should_receive(:create_working_source_table_sql).ordered.and_return(sql1)
-      subject.should_receive(:create_working_target_table_sql).ordered.and_return(sql2)
       subject.should_receive(:find_exact_match_commands).ordered.and_return([sql3])
 
-      subject.merge_commands.should == [sql1, sql2, sql3]
+      subject.merge_commands.should == [sql1, sql3]
     end
   end
 

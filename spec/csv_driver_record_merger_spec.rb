@@ -1,9 +1,9 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe VoterFile::CSVDriver::RecordMerger do
-  let!(:working_source_table) { stub(:name => 'source_table') }
-  let!(:working_target_table) { stub(:name => 'target_table') }
-  let!(:subject) { VoterFile::CSVDriver::RecordMerger.new(working_source_table, working_target_table) }
+  let(:working_tables) { [stub(:name => 'source_table'), stub(:name => 'target_table')] }
+  let!(:subject) { VoterFile::CSVDriver::RecordMerger.new { working_tables.shift } }
+  let!(:fuzzy_merger) { VoterFile::CSVDriver::FuzzyMerger.new { working_tables.shift } }
   let(:column_name) { :column_name }
 
   its(:is_update_only) { should be_nil }
@@ -12,11 +12,13 @@ describe VoterFile::CSVDriver::RecordMerger do
   context "fixed correlated_columns" do
 
     before do
-      subject.stub(:column_map => {column1: "column2"})
-      subject.stub(:correlated_update_columns => [:column3])
-      subject.stub(:correlated_insert_columns => [:column4, :column3])
-      subject.stub(:merge_expressions => {column4: "$S + 100"})
-      subject.stub(:insert_expressions => {foo: "s.column2 * 2"})
+      [subject, fuzzy_merger].each do |merger|
+        merger.stub(:column_map => {column1: "column2"})
+        merger.stub(:correlated_update_columns => [:column3])
+        merger.stub(:correlated_insert_columns => [:column4, :column3])
+        merger.stub(:merge_expressions => {column4: "$S + 100"})
+        merger.stub(:insert_expressions => {foo: "s.column2 * 2"})
+      end
     end
 
     describe "#exact_match_group" do
@@ -30,8 +32,8 @@ describe VoterFile::CSVDriver::RecordMerger do
 
     describe "#fuzzy_match_column" do
       it "adds the column name to fuzzy_match_columns" do
-        subject.fuzzy_match_columns.should_receive(:+).with([:col_1, :col_2])
-        subject.fuzzy_match_column "col_1", "col_2"
+        fuzzy_merger.fuzzy_match_columns.should_receive(:+).with([:col_1, :col_2])
+        fuzzy_merger.fuzzy_match_column "col_1", "col_2"
       end
     end
 
@@ -168,15 +170,17 @@ describe VoterFile::CSVDriver::RecordMerger do
     let!(:target_key_name) { VoterFile::CSVDriver::RecordMerger::TARGET_KEY_NAME }
 
     before do
-      subject.stub(:target_table => stub(:name => "target_table", :primary_key => :column1, :primary_key_type => :INT),
-                   :source_table => stub(:name => "source_table"),
-                   :working_source_table => stub(:name => 'working_source_table'),
-                   :working_target_table => stub(:name => 'working_target_table'),
-                   :update_columns => ["column1", "column2"],
-                   :insert_columns => ["column3", "column4"],
-                   :update_values => ["value1", "value2"],
-                   :insert_values => ["value3", "value4"],
-                   :column_constraints => [["col_1", "$S IS NOT NULL"], ["col_2", "$S > 2"], ["col_3", "$T = $S"]])
+      [subject, fuzzy_merger].each do |merger|
+        merger.stub(:target_table => stub(:name => "target_table", :primary_key => :column1, :primary_key_type => :INT),
+                    :source_table => stub(:name => "source_table"),
+                    :working_source_table => stub(:name => 'working_source_table'),
+                    :working_target_table => stub(:name => 'working_target_table'),
+                    :update_columns => ["column1", "column2"],
+                    :insert_columns => ["column3", "column4"],
+                    :update_values => ["value1", "value2"],
+                    :insert_values => ["value3", "value4"],
+                    :column_constraints => [["col_1", "$S IS NOT NULL"], ["col_2", "$S > 2"], ["col_3", "$T = $S"]])
+      end
     end
 
     describe "#find_exact_match_sql" do
@@ -218,7 +222,7 @@ describe VoterFile::CSVDriver::RecordMerger do
 
     describe "#find_fuzzy_match_sql" do
       it "returns sql for trigram similarity search" do
-        sql = subject.find_fuzzy_match_sql("column4")
+        sql = fuzzy_merger.find_fuzzy_match_sql("column4")
         sql.should include "UPDATE working_source_table"
         sql.should include "SET #{target_key_name} ="
         sql.should include "( SELECT t.column1"
@@ -260,8 +264,8 @@ describe VoterFile::CSVDriver::RecordMerger do
 
     describe "#create_working_target_table_sql" do
       it "returns SQL to initialize a working table for use in merging" do
-        subject.stub(:fuzzy_match_columns => ['column2'])
-        sql = subject.create_working_target_table_sql
+        fuzzy_merger.stub(:fuzzy_match_columns => ['column2'])
+        sql = fuzzy_merger.create_working_target_table_sql
         sql.should include "DROP TABLE IF EXISTS working_target_table;"
         sql.should include "CREATE TABLE working_target_table ( column1 INT );"
         sql.should include "ALTER TABLE working_target_table ADD COLUMN column2 TEXT;"
@@ -312,33 +316,33 @@ describe VoterFile::CSVDriver::RecordMerger do
   describe "#merge_commands" do
 
     before do
-      subject.stub_chain(:target_table, :primary_key).and_return(true)
+      [subject, fuzzy_merger].each do |merger|
+        merger.stub_chain(:target_table, :primary_key).and_return(true)
+      end
     end
 
     it "executes the merging script provided by the merger" do
-      sql1, sql2, sql3, sql4, sql5, sql6 = stub, stub, stub, stub, stub, stub
+      sql1, sql3, sql5, sql6 = stub, stub, stub, stub
 
       subject.should_receive(:create_working_source_table_sql).ordered.and_return(sql1)
-      subject.should_receive(:create_working_target_table_sql).ordered.and_return(sql2)
       subject.should_receive(:find_exact_match_commands).ordered.and_return([sql3])
-      subject.should_receive(:find_fuzzy_match_commands).ordered.and_return([sql4])
       subject.should_receive(:update_target_records_sql).ordered.and_return(sql5)
       subject.should_receive(:insert_remaining_sql).ordered.and_return(sql6)
 
-      subject.merge_commands.should == [sql1, sql2, sql3, sql4, sql5, sql6]
+      subject.merge_commands.should == [sql1, sql3, sql5, sql6]
     end
 
     it "strips nil values from the returned array" do
       sql1 = stub
 
-      subject.should_receive(:create_working_source_table_sql).ordered.and_return(sql1)
-      subject.should_receive(:create_working_target_table_sql).ordered.and_return(nil)
-      subject.should_receive(:find_exact_match_commands).ordered.and_return([nil])
-      subject.should_receive(:find_fuzzy_match_commands).ordered.and_return([nil])
-      subject.should_receive(:update_target_records_sql).ordered.and_return(nil)
-      subject.should_receive(:insert_remaining_sql).ordered.and_return(nil)
+      fuzzy_merger.should_receive(:create_working_target_table_sql).ordered.and_return(sql1)
+      fuzzy_merger.should_receive(:create_working_source_table_sql).ordered.and_return(nil)
+      fuzzy_merger.should_receive(:find_exact_match_commands).ordered.and_return([nil])
+      fuzzy_merger.should_receive(:find_fuzzy_match_commands).ordered.and_return([nil])
+      fuzzy_merger.should_receive(:update_target_records_sql).ordered.and_return(nil)
+      fuzzy_merger.should_receive(:insert_remaining_sql).ordered.and_return(nil)
 
-      subject.merge_commands.should == [sql1]
+      fuzzy_merger.merge_commands.should == [sql1]
     end
   end
 

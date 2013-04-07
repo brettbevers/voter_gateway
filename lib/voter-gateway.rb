@@ -7,6 +7,7 @@ require 'voter_file/csv_driver/csv_file'
 require 'voter_file/csv_driver/database_table'
 require 'voter_file/csv_driver/record_matcher'
 require 'voter_file/csv_driver/record_merger'
+require 'voter_file/csv_driver/fuzzy_merger'
 require 'voter_file/csv_driver/working_table'
 
 require 'voter_file/merge_audit_sql'

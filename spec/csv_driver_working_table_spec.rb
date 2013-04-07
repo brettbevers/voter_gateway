@@ -147,10 +147,10 @@ describe VoterFile::CSVDriver::WorkingTable do
                                                     target_col,
                                                     matching_col)
 
-      sql.should include "UPDATE test_table AS nv"
-      sql.should include "SET \"target_col\" = v.\"source_col\""
-      sql.should include "FROM source_table AS v"
-      sql.should include "WHERE nv.\"matching_col\" = v.\"matching_col\""
+      sql.should include "UPDATE test_table AS t"
+      sql.should include "SET \"target_col\" = s.\"source_col\""
+      sql.should include "FROM source_table AS s"
+      sql.should include "WHERE t.\"matching_col\" = s.\"matching_col\""
     end
   end
 

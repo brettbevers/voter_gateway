@@ -143,8 +143,7 @@ module VoterFile
     end
 
     def merge_records
-      # the record merger instance requires two working tables
-      merger = @merge_records_adapter.new(create_working_table, create_working_table)
+      merger = @merge_records_adapter.new { create_working_table }
       yield merger if block_given?
 
       commands = merger.merge_commands
@@ -153,6 +152,10 @@ module VoterFile
       end
 
       return merger
+    end
+
+    def enable_fuzzy_matching
+      @merge_records_adapter = FuzzyMerger
     end
 
     def load_extension(name)
