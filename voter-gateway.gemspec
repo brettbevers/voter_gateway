@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "voter-gateway"
-  s.version = "0.2.5"
+  s.version = "0.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["brettbevers"]
-  s.date = "2013-04-05"
+  s.date = "2013-04-08"
   s.email = "brett@nationbuilder.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     "lib/voter_file/csv_driver.rb",
     "lib/voter_file/csv_driver/csv_file.rb",
     "lib/voter_file/csv_driver/database_table.rb",
+    "lib/voter_file/csv_driver/fuzzy_merger.rb",
     "lib/voter_file/csv_driver/record_matcher.rb",
     "lib/voter_file/csv_driver/record_merger.rb",
     "lib/voter_file/csv_driver/working_table.rb",
