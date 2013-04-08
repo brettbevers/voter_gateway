@@ -62,19 +62,26 @@ describe VoterFile::CSVDriver::CSVFile do
 
     it "calls the correct functions for assembling a SQL command" do
       sql1, sql2 = stub, stub
-      subject.should_receive(:create_temp_table_sql).ordered.and_return(sql1)
+      subject.should_receive(:create_temp_table_sql).with([]).ordered.and_return(sql1)
       subject.should_receive(:bulk_copy_into_working_table_sql).ordered.and_return(sql2)
 
-      subject.load_file_commands.should == [sql1, sql2]
+      subject.load_file_commands([]).should == [sql1, sql2]
     end
 
   end
 
   describe "#create_temp_table_sql" do
 
-    it "returns sql to create a temporary table" do
+    it "returns sql to create a temporary table with headers from the csv" do
       subject.should_receive(:headers).and_return(["header1", "header2", "header3"])
-      temp_table_sql = subject.create_temp_table_sql
+      temp_table_sql = subject.create_temp_table_sql([])
+
+      temp_table_sql.should include "DROP TABLE IF EXISTS working_table"
+      temp_table_sql.should include "CREATE TABLE working_table (\"header1\" TEXT, \"header2\" TEXT, \"header3\" TEXT)"
+    end
+
+    it "returns sql to create a temporary table with custom headers" do
+      temp_table_sql = subject.create_temp_table_sql(["header1", "header2", "header3"])
 
       temp_table_sql.should include "DROP TABLE IF EXISTS working_table"
       temp_table_sql.should include "CREATE TABLE working_table (\"header1\" TEXT, \"header2\" TEXT, \"header3\" TEXT)"

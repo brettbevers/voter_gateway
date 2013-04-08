@@ -42,7 +42,7 @@ describe VoterFile::CSVDriver do
     it "yields the file located at the input path" do
       csv_file, sql = stub, stub
       VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
-      csv_file.should_receive(:load_file_commands).and_return([sql])
+      csv_file.should_receive(:load_file_commands).with([]).and_return([sql])
       subject_should_execute_sql(sql)
 
       file = subject.load_file(test_file_path) do |file|
@@ -51,6 +51,14 @@ describe VoterFile::CSVDriver do
       file.should == csv_file
     end
 
+    it "uses the custom headers when loading the file" do
+      csv_file, sql = stub, stub
+      VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
+      csv_file.should_receive(:load_file_commands).with(%w{header1 header2 header3}).and_return([sql])
+      subject_should_execute_sql(sql)
+
+      subject.load_file(test_file_path, %w{header1 header2 header3})
+    end
   end
 
   describe "#load_table" do

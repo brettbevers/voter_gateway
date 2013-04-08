@@ -67,14 +67,18 @@ class VoterFile::CSVDriver::CSVFile
   end
   private :egrep_escape
 
-  def load_file_commands
-    [create_temp_table_sql,
+  def load_file_commands(custom_headers = [])
+    [create_temp_table_sql(custom_headers),
      bulk_copy_into_working_table_sql]
   end
 
   # create temporary table for raw data using fields from csv  (all text types)
-  def create_temp_table_sql
-    raw_csv_schema = headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
+  def create_temp_table_sql(custom_headers)
+    if (custom_headers.empty?)
+      raw_csv_schema = headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
+    else
+      raw_csv_schema = custom_headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
+    end
     %Q{
       DROP TABLE IF EXISTS #{working_table.name};
       CREATE TABLE #{working_table.name} (#{raw_csv_schema});}

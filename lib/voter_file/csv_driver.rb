@@ -85,14 +85,14 @@ module VoterFile
       self.working_files = []
     end
 
-    def load_file(path)
+    def load_file(path, header = [])
       # the CSVFile instance requires one working table
       file = CSVFile.new(path, create_working_table)
       working_files << file
 
       yield file if block_given?
 
-      commands = file.load_file_commands
+      commands = file.load_file_commands(header)
       commands.each do |sql|
         db_connection.execute(sql)
       end
