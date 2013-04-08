@@ -7,11 +7,11 @@ module VoterFile
     def initialize
       super
       @audit_results = []
-      @merge_records_adapter = AuditMerger
       @audit_result_class = AuditResult
     end
 
     def merge_records
+      @merge_records_adapter = AuditMerger
       merger = super
       audit_merge(merger)
       return merger
