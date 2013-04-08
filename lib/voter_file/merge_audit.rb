@@ -48,7 +48,7 @@ module VoterFile
       end
     end
 
-    class AuditMerger < CSVDriver::RecordMerger
+    class AuditMerger < CSVDriver::FuzzyMerger
       include VoterFile::MergeAuditSql
 
       def merge_commands

@@ -69,12 +69,13 @@ describe VoterFile::MergeAudit::AuditMerger do
 
   describe "#merge_commands" do
     it "executes the merging script provided by the merger" do
-      sql1, sql3 = stub, stub
+      sql1, sql2, sql3 = stub, stub, stub
 
-      subject.should_receive(:create_working_source_table_sql).ordered.and_return(sql1)
+      subject.should_receive(:create_working_target_table_sql).ordered.and_return(sql1)
+      subject.should_receive(:create_working_source_table_sql).ordered.and_return(sql2)
       subject.should_receive(:find_exact_match_commands).ordered.and_return([sql3])
 
-      subject.merge_commands.should == [sql1, sql3]
+      subject.merge_commands.should == [sql1, sql2, sql3]
     end
   end
 
