@@ -8,7 +8,7 @@ module VoterFile
 
     def merge_duplicates
       # the record deduper instance requires two working tables
-      deduper = @merge_duplicates_adapter.new(create_working_table, create_working_table)
+      deduper = @merge_duplicates_adapter.new { create_working_table }
       yield deduper if block_given?
 
       deduper.apply_merge_orientation
@@ -40,7 +40,7 @@ module VoterFile
 
       attr_accessor :merge_orientation
 
-      def initialize(working_source_table, working_target_table)
+      def initialize(&block)
         super
         @merge_orientation = []
       end
