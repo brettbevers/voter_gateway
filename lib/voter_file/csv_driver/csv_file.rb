@@ -81,7 +81,7 @@ class VoterFile::CSVDriver::CSVFile
     end
     %Q{
       DROP TABLE IF EXISTS #{working_table.name};
-      CREATE TABLE #{working_table.name} (#{raw_csv_schema});}
+      CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});}
   end
 
   # bulk copy csv into temporary table

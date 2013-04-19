@@ -106,7 +106,7 @@ describe VoterFile::CSVDriver::WorkingTable do
   describe "#create_table_sql" do
     it "return sql for creating table with specified schema" do
       subject.create_table_sql.should match /DROP TABLE IF EXISTS #{test_table_name}/i
-      subject.create_table_sql.should match /CREATE TABLE #{test_table_name}/i
+      subject.create_table_sql.should match /CREATE TEMPORARY TABLE #{test_table_name}/i
     end
   end
 

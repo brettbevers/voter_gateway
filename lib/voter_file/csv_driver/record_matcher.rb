@@ -34,7 +34,7 @@ class VoterFile::CSVDriver::RecordMatcher
     source_name = source_table.name
     %Q{
       DROP TABLE IF EXISTS #{name};
-      CREATE TABLE #{name} ( LIKE #{source_name} );
+      CREATE TEMPORARY TABLE #{name} ( LIKE #{source_name} );
       ALTER TABLE #{name} ADD COLUMN #{SOURCE_KEY_NAME} SERIAL;
       ALTER TABLE #{name} ADD COLUMN #{TARGET_KEY_NAME} #{target_table.primary_key_type};
       INSERT INTO #{name} ( SELECT * from #{source_name} );}

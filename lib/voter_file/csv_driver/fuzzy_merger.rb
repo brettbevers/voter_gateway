@@ -22,7 +22,7 @@ class VoterFile::CSVDriver::FuzzyMerger < VoterFile::CSVDriver::RecordMerger
     name = working_target_table.name
     sql = %Q{
             DROP TABLE IF EXISTS #{name};
-            CREATE TABLE #{name} ( #{target_table.primary_key} #{target_table.primary_key_type} ); }
+            CREATE TEMPORARY TABLE #{name} ( #{target_table.primary_key} #{target_table.primary_key_type} ); }
 
     select_columns = target_table.primary_key.to_s
 

@@ -255,7 +255,7 @@ describe VoterFile::CSVDriver::RecordMerger do
       let(:sql) { subject.create_working_source_table_sql }
       it "returns SQL to initialize a working table for use in merging" do
         sql.should include "DROP TABLE IF EXISTS working_source_table;"
-        sql.should include "CREATE TABLE working_source_table ( LIKE source_table );"
+        sql.should include "CREATE TEMPORARY TABLE working_source_table ( LIKE source_table );"
         sql.should include "ALTER TABLE working_source_table ADD COLUMN working_source_id SERIAL;"
         sql.should include "ALTER TABLE working_source_table ADD COLUMN #{target_key_name} INT;"
         sql.should include "INSERT INTO working_source_table ( SELECT * from source_table );"
@@ -267,7 +267,7 @@ describe VoterFile::CSVDriver::RecordMerger do
         fuzzy_merger.stub(:fuzzy_match_columns => ['column2'])
         sql = fuzzy_merger.create_working_target_table_sql
         sql.should include "DROP TABLE IF EXISTS working_target_table;"
-        sql.should include "CREATE TABLE working_target_table ( column1 INT );"
+        sql.should include "CREATE TEMPORARY TABLE working_target_table ( column1 INT );"
         sql.should include "ALTER TABLE working_target_table ADD COLUMN column2 TEXT;"
         sql.should include "INSERT INTO working_target_table ( SELECT column1, column2 FROM target_table );"
       end

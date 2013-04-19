@@ -28,7 +28,7 @@ class VoterFile::CSVDriver::WorkingTable
   def create_table_sql
     %Q{
       DROP TABLE IF EXISTS #{name};
-      CREATE TABLE #{name} ( #{schema.join(", ")} );}
+      CREATE TEMPORARY TABLE #{name} ( #{schema.join(", ")} );}
   end
 
   def insert_from_sql(table_name)

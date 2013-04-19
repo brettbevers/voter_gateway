@@ -59,7 +59,7 @@ describe VoterFile::MergeAudit::AuditMerger do
     let(:sql) { subject.create_working_source_table_sql }
     it "returns SQL to initialize a working table for use in merging" do
       sql.should include "DROP TABLE IF EXISTS working_source_table;"
-      sql.should include "CREATE TABLE working_source_table ( LIKE source_table );"
+      sql.should include "CREATE TEMPORARY TABLE working_source_table ( LIKE source_table );"
       sql.should include "ALTER TABLE working_source_table ADD COLUMN working_source_id SERIAL;"
       sql.should include "ALTER TABLE working_source_table ADD COLUMN #{VoterFile::CSVDriver::RecordMerger::TARGET_KEY_NAME} INT;"
       sql.should include "INSERT INTO working_source_table ( SELECT * from source_table );"
