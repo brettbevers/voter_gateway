@@ -69,7 +69,7 @@ class VoterFile::CSVDriver::CSVFile
 
   def load_file_commands(custom_headers = [])
     [create_temp_table_sql(custom_headers),
-     bulk_copy_into_working_table_sql]
+     bulk_copy_into_working_table_sql(custom_headers)]
   end
 
   # create temporary table for raw data using fields from csv  (all text types)
@@ -85,12 +85,12 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   # bulk copy csv into temporary table
-  def bulk_copy_into_working_table_sql
+  def bulk_copy_into_working_table_sql(custom_headers)
     %Q{
       COPY #{working_table.name} FROM '#{path}'
         (FORMAT CSV,
           DELIMITER '#{delimiter}',
-          HEADER true,
+          HEADER #{custom_headers.empty?},
           ENCODING 'LATIN1',
           QUOTE '#{quote == "'" ? "''" : quote}');}
   end

@@ -77,7 +77,7 @@ describe VoterFile::CSVDriver::CSVFile do
       temp_table_sql = subject.create_temp_table_sql([])
 
       temp_table_sql.should include "DROP TABLE IF EXISTS working_table"
-      temp_table_sql.should include "CREATE TABLE working_table (\"header1\" TEXT, \"header2\" TEXT, \"header3\" TEXT)"
+      temp_table_sql.should include "CREATE TEMPORARY TABLE working_table (\"header1\" TEXT, \"header2\" TEXT, \"header3\" TEXT)"
     end
 
     it "returns sql to create a temporary table with custom headers" do
@@ -95,7 +95,7 @@ describe VoterFile::CSVDriver::CSVFile do
                     :quote => "\"",
                     :path => "/fake_path")
 
-      sql = subject.bulk_copy_into_working_table_sql
+      sql = subject.bulk_copy_into_working_table_sql([])
 
       sql.should include "COPY working_table FROM '/fake_path'"
       sql.should include "FORMAT CSV"
