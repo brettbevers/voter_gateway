@@ -104,6 +104,16 @@ describe VoterFile::CSVDriver::CSVFile do
       sql.should include "ENCODING 'LATIN1'"
       sql.should include "QUOTE '\"'"
     end
+
+    it "does not use header if a custom header is provided" do
+      subject.stub( :delimiter => ",",
+                    :quote => "\"",
+                    :path => "/fake_path")
+
+      sql = subject.bulk_copy_into_working_table_sql(%w{header1 header2 header3})
+
+      sql.should include "HEADER false"
+    end
   end
 
 end
