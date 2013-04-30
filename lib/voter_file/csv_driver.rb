@@ -90,13 +90,12 @@ module VoterFile
       file = CSVFile.new(path, create_working_table, options[:headers] || [])
       working_files << file
 
-      ActiveRecord::Base.transaction do
-        yield file if block_given?
+      yield file if block_given?
 
+      ActiveRecord::Base.transaction do
         file.load_file_commands.each do |sql|
           db_connection.execute(sql)
         end
-
         file.import_rows(bulk_insert_size: (options[:bulk_insert_size] || 1)) { |sql| exec_sql(sql) }
       end
 

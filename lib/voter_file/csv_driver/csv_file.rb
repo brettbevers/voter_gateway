@@ -64,10 +64,12 @@ class VoterFile::CSVDriver::CSVFile
     row = csv.shift
     until row.nil?
       values = []
-      csv.headers.each do |h|
-        value = row[h]
-        if @field_converters.has_key?(h.to_sym)
-          values << ((@field_converters[h.to_sym].is_a? Proc) ? @field_converters[h.to_sym][value] : @field_converters[h.to_sym])
+      headers = csv.headers
+      headers.each_index do |idx|
+        value = row[idx]
+        conv_name = headers[idx].to_sym
+        if @field_converters.has_key?(conv_name)
+          values << ((@field_converters[conv_name].is_a? Proc) ? @field_converters[conv_name][value] : @field_converters[conv_name])
         else
           values << value
         end
@@ -75,7 +77,7 @@ class VoterFile::CSVDriver::CSVFile
 
       bulk_values << values
 
-      if (bulk_values.size % bulk_size == 0) || csv.eof?
+      if (bulk_values.size == bulk_size) || csv.eof?
         yield "INSERT INTO #{name} VALUES #{bulk_values.map { |bv| "('#{bv.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')" }.join(', ')}"
         bulk_values = []
       end
