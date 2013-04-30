@@ -96,7 +96,9 @@ module VoterFile
         file.load_file_commands.each do |sql|
           db_connection.execute(sql)
         end
-        file.import_rows(bulk_insert_size: (options[:bulk_insert_size] || 1)) { |sql| exec_sql(sql) }
+        import_method = options[:import_method] || :bulk
+        bulk_insert_size = options[:bulk_insert_size] || 1
+        file.import_rows(bulk_insert_size: bulk_insert_size, import_method: import_method) { |sql| exec_sql(sql) }
       end
 
       file

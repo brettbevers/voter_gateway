@@ -17,7 +17,7 @@ describe VoterFile::CSVDriver::CSVFile do
   describe '#initialize' do
     its(:original) { should == test_file_path }
     its(:delimiter) { should == ',' }
-    its(:quote) { should == "\x00" }
+    its(:quote) { should == '`' }
     its(:working_table) { should == working_table }
     its(:working_files) { should be_empty }
     its(:custom_headers) { should be_empty }
@@ -72,7 +72,7 @@ describe VoterFile::CSVDriver::CSVFile do
     end
 
     it 'creates a corrected file from which malformed rows are removed' do
-      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd\x001,d\x002,d3\n" }
+      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd`1,d`2,d3\n" }
       subject.remove_malformed_rows
       File.open(subject.path, 'r').read.should == "header 1,header 2,header 3\ndata 1,data 2,data 3\n"
     end
@@ -104,6 +104,39 @@ describe VoterFile::CSVDriver::CSVFile do
   end
 
   describe '#import_rows' do
+    it 'uses the postgresql bulk csv import by default' do
+      expected_sql = [
+          %Q{COPY working_table FROM '#{test_file_path}'
+          (FORMAT CSV,
+            DELIMITER ',',
+            HEADER true,
+            ENCODING 'LATIN1',
+            QUOTE '`');}.gsub(/\s+/, ' ').strip
+      ]
+      actual_sql = []
+
+      subject.import_rows { |sql| actual_sql << sql.gsub(/\s+/, ' ').strip }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'does not use take the header from the csv when bulk importing from postgresql and custom headers are defined' do
+      expected_sql = [
+          %Q{COPY working_table FROM '#{test_file_path}'
+          (FORMAT CSV,
+            DELIMITER ',',
+            HEADER false,
+            ENCODING 'LATIN1',
+            QUOTE '`');}.gsub(/\s+/, ' ').strip
+      ]
+      actual_sql = []
+
+      subject.custom_headers = %w{header1 header2 header3}
+      subject.import_rows { |sql| actual_sql << sql.gsub(/\s+/, ' ').strip }
+
+      actual_sql.should == expected_sql
+    end
+
     it 'returns the sql to insert each field in each row if no converters defined' do
       File.open(test_file_path, 'w') do |f|
         f << "header 1,header 2,header 3\n"
@@ -117,7 +150,7 @@ describe VoterFile::CSVDriver::CSVFile do
       ]
       actual_sql = []
 
-      subject.import_rows { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
@@ -131,7 +164,7 @@ describe VoterFile::CSVDriver::CSVFile do
       expected_sql = ["INSERT INTO working_table VALUES ('value with ''quotes''', 'value 2', 'value 3')"]
       actual_sql = []
 
-      subject.import_rows { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
@@ -146,7 +179,7 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql = []
 
       subject.field 'header 1', as: lambda { |f| f.reverse }
-      subject.import_rows { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
@@ -161,7 +194,7 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql = []
 
       subject.field 'header 1', as: 'converted value'
-      subject.import_rows { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
@@ -176,7 +209,7 @@ describe VoterFile::CSVDriver::CSVFile do
 
       subject.custom_headers = %w{header1 header2 header3 header4}
       subject.field 'header4', as: 'value for the extra column'
-      subject.import_rows { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
@@ -191,7 +224,7 @@ describe VoterFile::CSVDriver::CSVFile do
       expected_sql = ["INSERT INTO working_table VALUES ('row 1 value 1', 'row 1 value 2', 'row 1 value 3'), ('row 2 value 2', 'row 2 value 2', 'row 2 value 3')"]
       actual_sql = []
 
-      subject.import_rows(bulk_insert_size: 2) { |sql| actual_sql << sql }
+      subject.import_rows(:import_method => :by_row, bulk_insert_size: 2) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end

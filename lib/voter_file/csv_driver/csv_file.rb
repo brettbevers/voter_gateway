@@ -3,7 +3,7 @@ class VoterFile::CSVDriver::CSVFile
   attr_accessor :original, :delimiter, :quote, :working_table, :working_files, :custom_headers
 
   DEFAULT_DELIMITER = ','
-  DEFAULT_QUOTE = "\x00"
+  DEFAULT_QUOTE = '`'
 
   def initialize(original, working_table, custom_headers = [])
     @original = File.expand_path(original)
@@ -57,35 +57,41 @@ class VoterFile::CSVDriver::CSVFile
     @field_converters[name.to_sym] = options[:as] ||  lambda { |value| value }
   end
 
-  def import_rows(options = {})
-    bulk_size = options[:bulk_insert_size] || 1
-    bulk_values = []
-    csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: false)
-    row = csv.shift
-    until row.nil?
-      values = []
-      headers = csv.headers
-      headers.each_index do |idx|
-        value = row[idx]
-        conv_name = headers[idx].to_sym
-        if @field_converters.has_key?(conv_name)
-          values << ((@field_converters[conv_name].is_a? Proc) ? @field_converters[conv_name][value] : @field_converters[conv_name])
-        else
-          values << value
-        end
-      end
-
-      bulk_values << values
-
-      if (bulk_values.size == bulk_size) || csv.eof?
-        yield "INSERT INTO #{name} VALUES #{bulk_values.map { |bv| "('#{bv.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')" }.join(', ')}"
+  def import_rows(options = {:import_method => :bulk})
+    if options.has_key?(:import_method) && options[:import_method].to_sym == :by_row
+      begin
+        bulk_size = options[:bulk_insert_size] || 1
         bulk_values = []
-      end
+        csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: false)
+        row = csv.shift
+        until row.nil?
+          values = []
+          headers = csv.headers
+          headers.each_index do |idx|
+            value = row[idx]
+            conv_name = headers[idx].to_sym
+            if @field_converters.has_key?(conv_name)
+              values << ((@field_converters[conv_name].is_a? Proc) ? @field_converters[conv_name][value] : @field_converters[conv_name])
+            else
+              values << value
+            end
+          end
 
-      row = csv.shift
+          bulk_values << values
+
+          if (bulk_values.size == bulk_size) || csv.eof?
+            yield "INSERT INTO #{name} VALUES #{bulk_values.map { |bv| "('#{bv.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')" }.join(', ')}"
+            bulk_values = []
+          end
+
+          row = csv.shift
+        end
+      ensure
+        csv.close unless csv.nil?
+      end
+    else
+      yield bulk_copy_into_table_sql
     end
-  ensure
-    csv.close unless csv.nil?
   end
 
   def name
@@ -105,6 +111,17 @@ class VoterFile::CSVDriver::CSVFile
       %Q{
         DROP TABLE IF EXISTS #{working_table.name};
         CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});
+      }
+    end
+
+    def bulk_copy_into_table_sql
+      %Q{
+        COPY #{working_table.name} FROM '#{path}'
+          (FORMAT CSV,
+            DELIMITER '#{delimiter == "'" ? "''" : delimiter}',
+            HEADER #{@custom_headers.empty?},
+            ENCODING 'LATIN1',
+            QUOTE '#{quote == "'" ? "''" : quote}');
       }
     end
 
