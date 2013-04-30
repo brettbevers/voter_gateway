@@ -1,98 +1,82 @@
 class VoterFile::CSVDriver::CSVFile
-  attr_accessor :original, :processed, :delimiter, :quote, :working_table, :working_files, :remote_host
+
+  attr_accessor :original, :delimiter, :quote, :working_table, :working_files, :custom_headers
 
   DEFAULT_DELIMITER = ','
-  DEFAULT_QUOTE = '^'
+  DEFAULT_QUOTE = "\x00"
 
-  def initialize(original, working_table)
+  def initialize(original, working_table, custom_headers = [])
     @original = File.expand_path(original)
+    @processed = nil
     @delimiter = DEFAULT_DELIMITER
     @quote = DEFAULT_QUOTE
     @working_table = working_table
     @working_files = []
+    @custom_headers = custom_headers
+    @field_converters = {}
   end
 
   def path
-    processed || original
-  end
-
-  def headers
-    if remote_host
-      head = `ssh #{remote_host} 'head -n 1 #{path}'`
-      # TODO (sandrasi): in case of quoted values it may return invalid headers
-      head.gsub(/[\r\n]/, '').split(delimiter)
-    else
-      CSV.open(path, :col_sep => delimiter).shift
-    end
+    @processed || original
   end
 
   def remove_expression(expr)
     grep_expression = 's/' + expr + '//g'
     stripped_file = "#{path}.stripped"
-    command = "sed -E '#{grep_expression}' '#{path}' >'#{stripped_file}'; chmod 777 #{stripped_file}"
-    command = "ssh #{remote_host} \"#{command}\"" if remote_host
 
-    system(command)
+    system("sed -E '#{grep_expression}' '#{path}' > '#{stripped_file}'; chmod 777 #{stripped_file}")
 
     working_files << stripped_file
-    self.processed = stripped_file
+    @processed = stripped_file
   end
 
   def remove_malformed_rows
-    f = self.path
-    d = egrep_escape(delimiter)
-    q = egrep_escape(quote)
-    corrected_file = "#{f}.corrected"
-    c = (headers.count - 1).to_s
-
-    regexp = "^((#{q}[^#{q}]*#{q})|([^#{d}#{q}]*))(#{d}((#{q}[^#{q}]*#{q})|([^#{d}#{q}]*))){#{c}}$"
-
-    command = "egrep '#{regexp}' '#{f}' >'#{corrected_file}'; chmod 777 #{corrected_file}"
-    command = "ssh #{remote_host} \"#{command}\"" if remote_host
-    system(command)
-
+    corrected_file = "#{path}.corrected"
+    CSV.open(corrected_file, 'wb', col_sep: delimiter, quote_char: quote) do |corrected_csv|
+      csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
+      begin
+        row = csv.shift
+        until row.nil?
+          corrected_csv << row unless row.headers.include?(nil)
+          row = csv.shift
+        end
+      rescue CSV::MalformedCSVError
+        # ignore malformed rows
+      end
+      csv.close
+    end
     working_files << corrected_file
-    self.processed = corrected_file
+    @processed = corrected_file
   end
 
-  def egrep_escape(char)
-    posix_ext_regex_meta_chars = %w{. ^ $ | \\ ? * + [ ( ) { } }
-    if posix_ext_regex_meta_chars.include? char
-      '\\' + char
-    elsif char == "'"
-      "'\\''"
-    else
-      char
+  def load_file_commands
+    [create_temp_table_sql]
+  end
+
+  def field(name, options = {})
+    @field_converters[name.to_sym] = options[:as] ||  lambda { |value| value }
+  end
+
+  def import_rows
+    csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: false)
+    row = csv.shift
+    until row.nil?
+      values = []
+      csv.headers.each do |h|
+        value = row[h]
+        if @field_converters.has_key?(h.to_sym)
+          values << ((@field_converters[h.to_sym].is_a? Proc) ? @field_converters[h.to_sym][value] : @field_converters[h.to_sym])
+        else
+          values << value
+        end
+      end
+
+      yield "INSERT INTO #{name} VALUES ('#{values.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')"
+
+      row = csv.shift
     end
-  end
-  private :egrep_escape
-
-  def load_file_commands(custom_headers = [])
-    [create_temp_table_sql(custom_headers),
-     bulk_copy_into_working_table_sql(custom_headers)]
-  end
-
-  # create temporary table for raw data using fields from csv  (all text types)
-  def create_temp_table_sql(custom_headers)
-    if (custom_headers.empty?)
-      raw_csv_schema = headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
-    else
-      raw_csv_schema = custom_headers.map { |h| "\"#{h}\" TEXT" }.join(', ')
-    end
-    %Q{
-      DROP TABLE IF EXISTS #{working_table.name};
-      CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});}
-  end
-
-  # bulk copy csv into temporary table
-  def bulk_copy_into_working_table_sql(custom_headers)
-    %Q{
-      COPY #{working_table.name} FROM '#{path}'
-        (FORMAT CSV,
-          DELIMITER '#{delimiter}',
-          HEADER #{custom_headers.empty?},
-          ENCODING 'LATIN1',
-          QUOTE '#{quote == "'" ? "''" : quote}');}
+  ensure
+    csv.close unless csv.nil?
   end
 
   def name
@@ -101,9 +85,26 @@ class VoterFile::CSVDriver::CSVFile
 
   def close
     working_files.each do |file|
-      command = "rm #{file}"
-      command = "ssh #{remote_host} \"#{command}\"" if remote_host
-      system(command)
+      system("rm #{file}")
     end
   end
+
+  private
+
+    def create_temp_table_sql
+      raw_csv_schema = headers.map { |h| %Q{"#{h}" TEXT} }.join(', ')
+      %Q{
+        DROP TABLE IF EXISTS #{working_table.name};
+        CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});
+      }
+    end
+
+    def headers
+      csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
+      csv.shift
+      result = csv.headers
+      result
+    ensure
+      csv.close unless csv.nil?
+    end
 end

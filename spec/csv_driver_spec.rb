@@ -42,8 +42,11 @@ describe VoterFile::CSVDriver do
     it "yields the file located at the input path" do
       csv_file, sql = stub, stub
       VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
-      csv_file.should_receive(:load_file_commands).with([]).and_return([sql])
+      ActiveRecord::Base.stub(:transaction).and_yield()
+
       subject_should_execute_sql(sql)
+      csv_file.should_receive(:load_file_commands).and_return([sql])
+      csv_file.should_receive(:import_rows)
 
       file = subject.load_file(test_file_path) do |file|
         file.should == csv_file
@@ -52,10 +55,15 @@ describe VoterFile::CSVDriver do
     end
 
     it "uses the custom headers when loading the file" do
-      csv_file, sql = stub, stub
-      VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
-      csv_file.should_receive(:load_file_commands).with(%w{header1 header2 header3}).and_return([sql])
-      subject_should_execute_sql(sql)
+      csv_file, working_table, create_table_sql, insert_row_sql = stub, stub, stub, stub
+
+      subject.stub(create_working_table: working_table)
+      VoterFile::CSVDriver::CSVFile.should_receive(:new).with(test_file_path, working_table, %w{header1 header2 header3}).and_return(csv_file)
+      ActiveRecord::Base.stub(:transaction).and_yield()
+      csv_file.should_receive(:load_file_commands).and_return([create_table_sql])
+      subject_should_execute_sql(create_table_sql)
+      csv_file.should_receive(:import_rows).and_yield(insert_row_sql)
+      subject_should_execute_sql(insert_row_sql)
 
       subject.load_file(test_file_path, %w{header1 header2 header3})
     end
