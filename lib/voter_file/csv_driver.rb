@@ -85,9 +85,9 @@ module VoterFile
       self.working_files = []
     end
 
-    def load_file(path, headers = [])
+    def load_file(path, options = {})
       # the CSVFile instance requires one working table
-      file = CSVFile.new(path, create_working_table, headers)
+      file = CSVFile.new(path, create_working_table, options[:headers] || [])
       working_files << file
 
       ActiveRecord::Base.transaction do
@@ -97,7 +97,7 @@ module VoterFile
           db_connection.execute(sql)
         end
 
-        file.import_rows { |sql| exec_sql(sql) }
+        file.import_rows(bulk_insert_size: (options[:bulk_insert_size] || 1)) { |sql| exec_sql(sql) }
       end
 
       file

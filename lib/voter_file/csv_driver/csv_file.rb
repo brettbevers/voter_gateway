@@ -57,7 +57,9 @@ class VoterFile::CSVDriver::CSVFile
     @field_converters[name.to_sym] = options[:as] ||  lambda { |value| value }
   end
 
-  def import_rows
+  def import_rows(options = {})
+    bulk_size = options[:bulk_insert_size] || 1
+    bulk_values = []
     csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: false)
     row = csv.shift
     until row.nil?
@@ -71,7 +73,12 @@ class VoterFile::CSVDriver::CSVFile
         end
       end
 
-      yield "INSERT INTO #{name} VALUES ('#{values.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')"
+      bulk_values << values
+
+      if (bulk_values.size % bulk_size == 0) || csv.eof?
+        yield "INSERT INTO #{name} VALUES #{bulk_values.map { |bv| "('#{bv.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')" }.join(', ')}"
+        bulk_values = []
+      end
 
       row = csv.shift
     end

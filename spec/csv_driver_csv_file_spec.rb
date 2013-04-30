@@ -115,12 +115,11 @@ describe VoterFile::CSVDriver::CSVFile do
           "INSERT INTO working_table VALUES ('row 1 value 1', 'row 1 value 2', 'row 1 value 3')",
           "INSERT INTO working_table VALUES ('row 2 value 2', 'row 2 value 2', 'row 2 value 3')"
       ]
-      i = 0
+      actual_sql = []
 
-      subject.import_rows do |sql|
-        expected_sql[i].should == sql
-        i += 1
-      end
+      subject.import_rows { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
     end
 
     it 'escapes the quotes in the returned sql' do
@@ -129,15 +128,12 @@ describe VoterFile::CSVDriver::CSVFile do
         f << "value with 'quotes',value 2,value 3\n"
       end
 
-      expected_sql = [
-          "INSERT INTO working_table VALUES ('value with ''quotes''', 'value 2', 'value 3')",
-      ]
-      i = 0
+      expected_sql = ["INSERT INTO working_table VALUES ('value with ''quotes''', 'value 2', 'value 3')"]
+      actual_sql = []
 
-      subject.import_rows do |sql|
-        expected_sql[i].should == sql
-        i += 1
-      end
+      subject.import_rows { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
     end
 
     it 'returns the sql to insert fields using a conversion block' do
@@ -146,16 +142,13 @@ describe VoterFile::CSVDriver::CSVFile do
         f << "value 1,value 2,value 3\n"
       end
 
-      expected_sql = [
-          "INSERT INTO working_table VALUES ('1 eulav', 'value 2', 'value 3')",
-      ]
-      i = 0
+      expected_sql = ["INSERT INTO working_table VALUES ('1 eulav', 'value 2', 'value 3')"]
+      actual_sql = []
 
       subject.field 'header 1', as: lambda { |f| f.reverse }
-      subject.import_rows do |sql|
-        expected_sql[i].should == sql
-        i += 1
-      end
+      subject.import_rows { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
     end
 
     it 'returns the sql to insert fields using a conversion value' do
@@ -164,16 +157,13 @@ describe VoterFile::CSVDriver::CSVFile do
         f << "value 1,value 2,value 3\n"
       end
 
-      expected_sql = [
-          "INSERT INTO working_table VALUES ('converted value', 'value 2', 'value 3')",
-      ]
-      i = 0
+      expected_sql = ["INSERT INTO working_table VALUES ('converted value', 'value 2', 'value 3')"]
+      actual_sql = []
 
       subject.field 'header 1', as: 'converted value'
-      subject.import_rows do |sql|
-        expected_sql[i].should == sql
-        i += 1
-      end
+      subject.import_rows { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
     end
 
     it 'returns the sql to insert extra fields' do
@@ -181,17 +171,29 @@ describe VoterFile::CSVDriver::CSVFile do
         f << "value 1,value 2,value 3\n"
       end
 
-      expected_sql = [
-          "INSERT INTO working_table VALUES ('value 1', 'value 2', 'value 3', 'value for the extra column')",
-      ]
-      i = 0
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1', 'value 2', 'value 3', 'value for the extra column')"]
+      actual_sql = []
 
       subject.custom_headers = %w{header1 header2 header3 header4}
       subject.field 'header4', as: 'value for the extra column'
-      subject.import_rows do |sql|
-        expected_sql[i].should == sql
-        i += 1
+      subject.import_rows { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'returns the sql to bulk insert rows' do
+      File.open(test_file_path, 'w') do |f|
+        f << "header 1,header 2,header 3\n"
+        f << "row 1 value 1,row 1 value 2,row 1 value 3\n"
+        f << "row 2 value 2,row 2 value 2,row 2 value 3\n"
       end
+
+      expected_sql = ["INSERT INTO working_table VALUES ('row 1 value 1', 'row 1 value 2', 'row 1 value 3'), ('row 2 value 2', 'row 2 value 2', 'row 2 value 3')"]
+      actual_sql = []
+
+      subject.import_rows(bulk_insert_size: 2) { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
     end
   end
 end
