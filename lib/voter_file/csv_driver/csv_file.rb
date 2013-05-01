@@ -54,7 +54,10 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def field(name, options = {})
-    @field_converters[name.to_sym] = options[:as] ||  lambda { |value| value }
+    converter = {}
+    converter[:using_field_values] = options[:using_field_values] if options[:using_field_values]
+    converter[:as] = options[:as] || (converter[:using_field_values] ? lambda { |value, other_field_values| value } : lambda { |value| value })
+    @field_converters[name.to_sym] = converter
   end
 
   def import_rows(options = {:import_method => :bulk})
@@ -71,7 +74,19 @@ class VoterFile::CSVDriver::CSVFile
             value = row[idx]
             conv_name = headers[idx].to_sym
             if @field_converters.has_key?(conv_name)
-              values << ((@field_converters[conv_name].is_a? Proc) ? @field_converters[conv_name][value] : @field_converters[conv_name])
+              if @field_converters[conv_name].has_key?(:using_field_values)
+                if @field_converters[conv_name][:using_field_values].respond_to?(:each)
+                  other_field_values = []
+                  @field_converters[conv_name][:using_field_values].each do |v|
+                    other_field_values << row[v]
+                  end
+                  values << @field_converters[conv_name][:as][value, other_field_values]
+                else
+                  values << @field_converters[conv_name][:as][value, row[@field_converters[conv_name][:using_field_values]]]
+                end
+              else
+                values << @field_converters[conv_name][:as][value]
+              end
             else
               values << value
             end

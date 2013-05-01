@@ -178,22 +178,52 @@ describe VoterFile::CSVDriver::CSVFile do
       expected_sql = ["INSERT INTO working_table VALUES ('1 eulav', 'value 2', 'value 3')"]
       actual_sql = []
 
-      subject.field 'header 1', as: lambda { |f| f.reverse }
+      subject.field 'header 1', as: lambda { |v| v.reverse }
       subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
     end
 
-    it 'returns the sql to insert fields using a conversion value' do
+    it 'returns the sql to insert fields using a conversion block and another single field from the csv' do
       File.open(test_file_path, 'w') do |f|
         f << "header 1,header 2,header 3\n"
         f << "value 1,value 2,value 3\n"
       end
 
-      expected_sql = ["INSERT INTO working_table VALUES ('converted value', 'value 2', 'value 3')"]
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1 and value 2', 'value 2', 'value 3')"]
       actual_sql = []
 
-      subject.field 'header 1', as: 'converted value'
+      subject.field 'header 1', as: lambda { |v, other_field| "#{v} and #{other_field}" }, using_field_values: 'header 2'
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'returns the sql to insert fields using a conversion block and other fields from the csv' do
+      File.open(test_file_path, 'w') do |f|
+        f << "header 1,header 2,header 3\n"
+        f << "value 1,value 2,value 3\n"
+      end
+
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1 and value 2 and value 3', 'value 2', 'value 3')"]
+      actual_sql = []
+
+      subject.field 'header 1', as: lambda { |v, other_fields| "#{v} and #{other_fields.join(' and ')}" }, using_field_values: ['header 2', 'header 3']
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'ignores the other field values if no conversion block is defined' do
+      File.open(test_file_path, 'w') do |f|
+        f << "header 1,header 2,header 3\n"
+        f << "value 1,value 2,value 3\n"
+      end
+
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1', 'value 2', 'value 3')"]
+      actual_sql = []
+
+      subject.field 'header 1', using_field_values: ['header 2', 'header 3']
       subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
@@ -208,7 +238,7 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql = []
 
       subject.custom_headers = %w{header1 header2 header3 header4}
-      subject.field 'header4', as: 'value for the extra column'
+      subject.field 'header4', as: lambda { |v| 'value for the extra column' }
       subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
