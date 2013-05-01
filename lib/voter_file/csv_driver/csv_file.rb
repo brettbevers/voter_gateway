@@ -55,6 +55,7 @@ class VoterFile::CSVDriver::CSVFile
 
   def field(name, options = {})
     converter = {}
+    converter[:type] = options[:type] if options[:type]
     converter[:using_field_values] = options[:using_field_values] if options[:using_field_values]
     converter[:as] = options[:as] || (converter[:using_field_values] ? lambda { |value, other_field_values| value } : lambda { |value| value })
     @field_converters[name.to_sym] = converter
@@ -72,30 +73,42 @@ class VoterFile::CSVDriver::CSVFile
           headers = csv.headers
           headers.each_index do |idx|
             value = row[idx]
-            conv_name = headers[idx].to_sym
-            if @field_converters.has_key?(conv_name)
-              if @field_converters[conv_name].has_key?(:using_field_values)
-                if @field_converters[conv_name][:using_field_values].respond_to?(:each)
+            converter = @field_converters[headers[idx].to_sym]
+            if converter
+              type = converter[:type]
+              if converter[:using_field_values]
+                if converter[:using_field_values].respond_to?(:each)
                   other_field_values = []
-                  @field_converters[conv_name][:using_field_values].each do |v|
+                  converter[:using_field_values].each do |v|
                     other_field_values << row[v]
                   end
-                  values << @field_converters[conv_name][:as][value, other_field_values]
+                  value = converter[:as][value, other_field_values]
                 else
-                  values << @field_converters[conv_name][:as][value, row[@field_converters[conv_name][:using_field_values]]]
+                  value = converter[:as][value, row[converter[:using_field_values]]]
                 end
               else
-                values << @field_converters[conv_name][:as][value]
+                value = converter[:as][value]
               end
-            else
-              values << value
             end
+            values << {value: value, type: type}
           end
 
           bulk_values << values
 
           if (bulk_values.size == bulk_size) || csv.eof?
-            yield "INSERT INTO #{name} VALUES #{bulk_values.map { |bv| "('#{bv.map{ |v| v.gsub("'", "''") unless v.nil? }.join("', '")}')" }.join(', ')}"
+            sql_insert_values = bulk_values.map do |bv|
+              mapped_values = bv.map do |value_with_type|
+                if value_with_type[:value]
+                  mapped_value = "'#{value_with_type[:value].gsub("'", "''")}'"
+                else
+                  mapped_value = 'NULL'
+                end
+                mapped_value = "#{mapped_value}::#{value_with_type[:type]}" if value_with_type[:type]
+                mapped_value
+              end
+              "(#{mapped_values.join(', ')})"
+            end
+            yield "INSERT INTO #{name} VALUES #{sql_insert_values.join(', ')}"
             bulk_values = []
           end
 
@@ -122,7 +135,7 @@ class VoterFile::CSVDriver::CSVFile
   private
 
     def create_temp_table_sql
-      raw_csv_schema = headers.map { |h| %Q{"#{h}" TEXT} }.join(', ')
+      raw_csv_schema = headers.map { |h| %Q{"#{h}" #{(@field_converters[h.to_sym][:type] if @field_converters[h.to_sym]) || 'TEXT'}} }.join(', ')
       %Q{
         DROP TABLE IF EXISTS #{working_table.name};
         CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});

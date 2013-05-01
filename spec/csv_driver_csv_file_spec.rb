@@ -97,21 +97,28 @@ describe VoterFile::CSVDriver::CSVFile do
   describe '#load_file_commands' do
     it 'returns the sql to create a temporary table' do
       File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\n" }
-      file_commands = subject.load_file_commands
-      file_commands[0].should include 'DROP TABLE IF EXISTS working_table'
-      file_commands[0].should include 'CREATE TEMPORARY TABLE working_table ("header 1" TEXT, "header 2" TEXT, "header 3" TEXT)'
+      expected_sql = 'DROP TABLE IF EXISTS working_table; CREATE TEMPORARY TABLE working_table ("header 1" TEXT, "header 2" TEXT, "header 3" TEXT);'
+      actual_sql = subject.load_file_commands[0].gsub(/\s+/, ' ').strip
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'returns the sql to create a temporary table with specified column types' do
+      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\n" }
+      expected_sql = 'DROP TABLE IF EXISTS working_table; CREATE TEMPORARY TABLE working_table ("header 1" INT, "header 2" TEXT, "header 3" TEXT);'
+      subject.field 'header 1', :type => :INT
+      subject.field 'header 2'
+
+      actual_sql = subject.load_file_commands[0].gsub(/\s+/, ' ').strip
+
+      actual_sql.should == expected_sql
     end
   end
 
   describe '#import_rows' do
     it 'uses the postgresql bulk csv import by default' do
       expected_sql = [
-          %Q{COPY working_table FROM '#{test_file_path}'
-          (FORMAT CSV,
-            DELIMITER ',',
-            HEADER true,
-            ENCODING 'LATIN1',
-            QUOTE '`');}.gsub(/\s+/, ' ').strip
+          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER true, ENCODING 'LATIN1', QUOTE '`');}.gsub(/\s+/, ' ').strip
       ]
       actual_sql = []
 
@@ -120,14 +127,9 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql.should == expected_sql
     end
 
-    it 'does not use take the header from the csv when bulk importing from postgresql and custom headers are defined' do
+    it 'does not take the header from the csv when bulk importing from postgresql and custom headers are defined' do
       expected_sql = [
-          %Q{COPY working_table FROM '#{test_file_path}'
-          (FORMAT CSV,
-            DELIMITER ',',
-            HEADER false,
-            ENCODING 'LATIN1',
-            QUOTE '`');}.gsub(/\s+/, ' ').strip
+          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER false, ENCODING 'LATIN1', QUOTE '`');}.gsub(/\s+/, ' ').strip
       ]
       actual_sql = []
 
@@ -184,7 +186,7 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql.should == expected_sql
     end
 
-    it 'returns the sql to insert fields using a conversion block and another single field from the csv' do
+    it 'returns the sql to insert fields using a conversion block and another single field from the csv defined by its name' do
       File.open(test_file_path, 'w') do |f|
         f << "header 1,header 2,header 3\n"
         f << "value 1,value 2,value 3\n"
@@ -199,7 +201,7 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql.should == expected_sql
     end
 
-    it 'returns the sql to insert fields using a conversion block and other fields from the csv' do
+    it 'returns the sql to insert fields using a conversion block and multiple fields from the csv defined by their names' do
       File.open(test_file_path, 'w') do |f|
         f << "header 1,header 2,header 3\n"
         f << "value 1,value 2,value 3\n"
@@ -209,6 +211,21 @@ describe VoterFile::CSVDriver::CSVFile do
       actual_sql = []
 
       subject.field 'header 1', as: lambda { |v, other_fields| "#{v} and #{other_fields.join(' and ')}" }, using_field_values: ['header 2', 'header 3']
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'returns the sql to insert fields using a conversion block and another single field from the csv defined by its index' do
+      File.open(test_file_path, 'w') do |f|
+        f << "header 1,header 2,header 3\n"
+        f << "value 1,value 2,value 3\n"
+      end
+
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1 and value 2', 'value 2', 'value 3')"]
+      actual_sql = []
+
+      subject.field 'header 1', as: lambda { |v, other_field| "#{v} and #{other_field}" }, using_field_values: 1
       subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
@@ -239,6 +256,22 @@ describe VoterFile::CSVDriver::CSVFile do
 
       subject.custom_headers = %w{header1 header2 header3 header4}
       subject.field 'header4', as: lambda { |v| 'value for the extra column' }
+      subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
+
+      actual_sql.should == expected_sql
+    end
+
+    it 'returns the insert sql with type conversion' do
+      File.open(test_file_path, 'w') do |f|
+        f << "header 1,header 2,header 3\n"
+        f << "value 1,,value 3\n"
+      end
+
+      expected_sql = ["INSERT INTO working_table VALUES ('value 1'::CITEXT, NULL::INT, 'value 3')"]
+      actual_sql = []
+
+      subject.field 'header 1', :type => :CITEXT
+      subject.field 'header 2', :type => :INT
       subject.import_rows(:import_method => :by_row) { |sql| actual_sql << sql }
 
       actual_sql.should == expected_sql
