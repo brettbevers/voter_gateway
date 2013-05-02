@@ -34,20 +34,29 @@ class VoterFile::CSVDriver::CSVFile
     corrected_file = "#{path}.corrected"
     CSV.open(corrected_file, 'wb', col_sep: delimiter, quote_char: quote) do |corrected_csv|
       csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
-      begin
-        row = csv.shift
-        until row.nil?
-          corrected_csv << row unless row.headers.include?(nil)
-          row = csv.shift
-        end
-      rescue CSV::MalformedCSVError
-        # ignore malformed rows
+      row = next_row(csv)
+      until row.nil?
+        corrected_csv << row unless row.headers.size != csv.headers.size
+        row = next_row(csv)
       end
       csv.close
     end
     working_files << corrected_file
     @processed = corrected_file
   end
+
+  def next_row(csv)
+    row = nil
+    while row.nil? && !csv.eof?
+      begin
+        row = csv.shift
+      rescue CSV::MalformedCSVError
+        # ignore malformed rows
+      end
+    end
+    row
+  end
+  private :next_row
 
   def load_file_commands
     [create_temp_table_sql]

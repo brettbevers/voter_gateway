@@ -72,9 +72,9 @@ describe VoterFile::CSVDriver::CSVFile do
     end
 
     it 'creates a corrected file from which malformed rows are removed' do
-      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd`1,d`2,d3\n" }
+      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd`1,d`2,d3\ndata 4,data 5,data 6\n" }
       subject.remove_malformed_rows
-      File.open(subject.path, 'r').read.should == "header 1,header 2,header 3\ndata 1,data 2,data 3\n"
+      File.open(subject.path, 'r').read.should == "header 1,header 2,header 3\ndata 1,data 2,data 3\ndata 4,data 5,data 6\n"
     end
 
     it 'ignores the delimiter inside quoted fields' do
