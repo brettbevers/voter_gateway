@@ -17,7 +17,7 @@ describe VoterFile::CSVDriver::CSVFile do
   describe '#initialize' do
     its(:original) { should == test_file_path }
     its(:delimiter) { should == ',' }
-    its(:quote) { should == '`' }
+    its(:quote) { should == '^' }
     its(:working_table) { should == working_table }
     its(:working_files) { should be_empty }
     its(:custom_headers) { should be_empty }
@@ -72,7 +72,7 @@ describe VoterFile::CSVDriver::CSVFile do
     end
 
     it 'creates a corrected file from which malformed rows are removed' do
-      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd`1,d`2,d3\ndata 4,data 5,data 6\n" }
+      File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\ndata 1,data 2,data 3\nd^1,d^2,d3\ndata 4,data 5,data 6\n" }
       subject.remove_malformed_rows
       File.open(subject.path, 'r').read.should == "header 1,header 2,header 3\ndata 1,data 2,data 3\ndata 4,data 5,data 6\n"
     end
@@ -118,7 +118,7 @@ describe VoterFile::CSVDriver::CSVFile do
   describe '#import_rows' do
     it 'uses the postgresql bulk csv import by default' do
       expected_sql = [
-          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER true, ENCODING 'LATIN1', QUOTE '`');}.gsub(/\s+/, ' ').strip
+          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER true, ENCODING 'LATIN1', QUOTE '^');}.gsub(/\s+/, ' ').strip
       ]
       actual_sql = []
 
@@ -129,7 +129,7 @@ describe VoterFile::CSVDriver::CSVFile do
 
     it 'does not take the header from the csv when bulk importing from postgresql and custom headers are defined' do
       expected_sql = [
-          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER false, ENCODING 'LATIN1', QUOTE '`');}.gsub(/\s+/, ' ').strip
+          %Q{COPY working_table FROM '#{test_file_path}' (FORMAT CSV, DELIMITER ',', HEADER false, ENCODING 'LATIN1', QUOTE '^');}.gsub(/\s+/, ' ').strip
       ]
       actual_sql = []
 

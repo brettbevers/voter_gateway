@@ -1,9 +1,18 @@
+class CSV
+
+  # Monkey patch Ruby's built in CSV class and fix the regular expression which is used internally to escape special regexp characters
+  def escape_re(str)
+    @fixed_re_chars = /#{%"[-\\[\\]\\.^$?*+{}()|# \r\n\t\f\v]".encode(@encoding)}/ if @fixed_re_chars.nil?
+    str.gsub(@fixed_re_chars) { |c| @re_esc + c }
+  end
+end
+
 class VoterFile::CSVDriver::CSVFile
 
   attr_accessor :original, :delimiter, :quote, :working_table, :working_files, :custom_headers
 
   DEFAULT_DELIMITER = ','
-  DEFAULT_QUOTE = '`'
+  DEFAULT_QUOTE = '^'
 
   def initialize(original, working_table, custom_headers = [])
     @original = File.expand_path(original)
