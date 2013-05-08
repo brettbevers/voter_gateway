@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "voter-gateway"
-  s.version = "0.4.1"
+  s.version = "0.4.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["brettbevers"]
-  s.date = "2013-05-02"
+  s.date = "2013-05-08"
   s.email = "brett@nationbuilder.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
