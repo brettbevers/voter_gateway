@@ -56,16 +56,22 @@ class VoterFile::CSVDriver::WorkingTable
       value = "s.\"#{source_col}\""
     end
 
+    if matching_col.respond_to?(:map)
+      where_clause = matching_col.map { |c| %Q{t."#{c}" = s."#{c}"} }.join(' AND ')
+    else
+      where_clause = %Q{t."#{matching_col}" = s."#{matching_col}"}
+    end
     %Q{
       UPDATE #{self.name} AS t
       SET "#{target_col}" = #{value}
       FROM #{source_table_name} AS s
-      WHERE t."#{matching_col}" = s."#{matching_col}";}
+      WHERE #{where_clause};
+    }
   end
 
-      def prepare_for_geocoding_commands
-        [add_necessary_geocoding_columns, mark_records_as_needing_geocoding, populate_location_geometry].compact
-      end
+  def prepare_for_geocoding_commands
+    [add_necessary_geocoding_columns, mark_records_as_needing_geocoding, populate_location_geometry].compact
+  end
 
   def mark_records_as_needing_geocoding
     add_column :needs_geocoding, type: :BOOLEAN

@@ -152,6 +152,23 @@ describe VoterFile::CSVDriver::WorkingTable do
       sql.should include "FROM source_table AS s"
       sql.should include "WHERE t.\"matching_col\" = s.\"matching_col\""
     end
+
+    it "should return correct SQL for copying a column by matching on multiple keys" do
+      source_table_name = "source_table"
+      source_col = "source_col"
+      target_col = "target_col"
+      matching_cols = %w{matching_col_1 matching_col_2}
+
+      sql = subject.map_column_from_table(source_table_name,
+                                          source_col,
+                                          target_col,
+                                          matching_cols)
+
+      sql.should include "UPDATE test_table AS t"
+      sql.should include "SET \"target_col\" = s.\"source_col\""
+      sql.should include "FROM source_table AS s"
+      sql.should include "WHERE t.\"matching_col_1\" = s.\"matching_col_1\" AND t.\"matching_col_2\" = s.\"matching_col_2\""
+    end
   end
 
   describe "#mark_records_as_needing_geocoding" do
