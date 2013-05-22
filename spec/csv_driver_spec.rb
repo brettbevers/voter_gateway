@@ -2,14 +2,25 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe VoterFile::CSVDriver do
 
-  let(:subject) { VoterFile::CSVDriver.new }
+  let(:subject) { VoterFile::CSVDriver.new(db_connection) }
   let!(:test_file_path) { Tempfile.new("test").path }
   let(:test_table_name) { "test_table" }
+  let(:db_connection) { stub }
 
   def subject_should_execute_sql(sql)
     db_connection = stub
     subject.should_receive(:db_connection).ordered.and_return(db_connection)
     db_connection.should_receive(:execute).with(sql)
+  end
+
+  describe "#initialize" do
+    it "accepts a database connection" do
+      db_connection = stub
+      query = "select * from co_voters"
+      driver = VoterFile::CSVDriver.new(db_connection)
+      db_connection.should_receive(:execute).with(query)
+      driver.exec_sql(query)
+    end
   end
 
   describe "#clean_up!" do

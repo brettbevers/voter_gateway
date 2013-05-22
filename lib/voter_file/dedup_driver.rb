@@ -1,8 +1,8 @@
 module VoterFile
   class DedupDriver < CSVDriver
 
-    def initialize
-      super
+    def initialize(connection=nil)
+      super(connection)
       @merge_duplicates_adapter = RecordDeduper
     end
 
@@ -40,8 +40,8 @@ module VoterFile
 
       attr_accessor :merge_orientation
 
-      def initialize(&block)
-        super
+      def initialize(connection=nil, &block)
+        super(connection)
         @merge_orientation = []
       end
 

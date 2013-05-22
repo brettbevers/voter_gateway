@@ -41,8 +41,8 @@ module VoterFile
   $$ LANGUAGE plpgsql;
 }}
 
-    def initialize
-      @db_connection = ActiveRecord::Base.connection unless Rails.env == 'voter_gateway_test'
+    def initialize(connection = nil)
+      @db_connection = (connection || ActiveRecord::Base.connection)
       @merge_records_adapter = RecordMerger
       @working_tables = []
       @working_files = []

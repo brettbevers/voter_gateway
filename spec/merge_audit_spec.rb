@@ -8,7 +8,8 @@ end
 
 describe VoterFile::MergeAudit do
 
-  let(:subject) { VoterFile::MergeAudit.new }
+  let(:subject) { VoterFile::MergeAudit.new(db_connection) }
+  let(:db_connection) { stub }
 
   describe "#merge_records" do
     it "matches records and then performs audit" do

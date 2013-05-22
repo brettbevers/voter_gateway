@@ -3,8 +3,8 @@ module VoterFile
 
     attr_accessor :path, :delimiter, :quote, :remote_host, :keys
 
-    def initialize(path, opts={})
-      super()
+    def initialize(path, connection=nil, opts={})
+      super(connection)
       @path = path
       @delimiter = opts[:delimiter] || VoterFile::CSVDriver::CSVFile::DEFAULT_DELIMITER
       @quote = opts[:quote] || VoterFile::CSVDriver::CSVFile::DEFAULT_QUOTE
