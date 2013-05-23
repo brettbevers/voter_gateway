@@ -2,8 +2,8 @@ module VoterFile
   class DatabaseAudit < CSVDriver
     attr_accessor :state
 
-    def initialize(state)
-      super()
+    def initialize(connection = nil, state)
+      super(connection)
       @state = state
     end
 

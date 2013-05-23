@@ -3,8 +3,8 @@ module VoterFile
   class DedupAudit < DedupDriver
     attr_reader :audit_results
 
-    def initialize
-      super
+    def initialize(connection = nil)
+      super(connection)
       @audit_results = []
       @merge_duplicates_adapter = DedupAuditMerger
     end
