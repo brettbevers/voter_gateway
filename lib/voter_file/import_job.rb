@@ -9,8 +9,12 @@ module VoterFile
       raise "Must override '#job' in subclass"
     end
 
+    def connection
+      raise "Must override '#connection' in subclass"
+    end
+
     def perform
-      driver = CSVDriver.new
+      driver = CSVDriver.new(connection)
       begin
         job(driver)
       ensure
@@ -19,7 +23,7 @@ module VoterFile
     end
 
     def perform_audit
-      driver = MergeAudit.new
+      driver = MergeAudit.new(connection)
       begin
         job(driver)
       ensure

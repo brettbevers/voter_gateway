@@ -1,7 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 class TestJob < VoterFile::ImportJob::Base
+
   def initialize
+  end
+
+  def connection
   end
 end
 
@@ -39,5 +43,4 @@ describe VoterFile::ImportJob::Base do
       subject.perform_audit.should == result
     end
   end
-
 end
