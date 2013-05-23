@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "voter-gateway"
-  s.version = "0.5.0"
+  s.version = "0.5.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["brettbevers"]
-  s.date = "2013-05-22"
+  s.date = "2013-05-23"
   s.email = "brett@nationbuilder.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
@@ -53,11 +53,11 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/3dna/voter-gateway"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "2.0.3"
+  s.rubygems_version = "1.8.25"
   s.summary = "A database gateway for importing and merging records."
 
   if s.respond_to? :specification_version then
-    s.specification_version = 4
+    s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<rails>, ["~> 3.2.13"])
