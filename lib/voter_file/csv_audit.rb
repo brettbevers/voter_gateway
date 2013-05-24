@@ -62,6 +62,7 @@ module VoterFile
       commands.each do |sql|
         db_connection.execute(sql)
       end
+      file.import_rows { |sql| exec_sql(sql) }
 
       return file
     end
