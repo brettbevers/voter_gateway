@@ -9,7 +9,7 @@ end
 
 class VoterFile::CSVDriver::CSVFile
 
-  attr_accessor :original, :delimiter, :quote, :working_table, :working_files, :custom_headers
+  attr_accessor :original, :delimiter, :quote, :working_table, :working_files, :custom_headers, :remote_host
 
   DEFAULT_DELIMITER = ','
   DEFAULT_QUOTE = '^'
@@ -144,6 +144,15 @@ class VoterFile::CSVDriver::CSVFile
     working_table.name
   end
 
+  def headers
+    csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
+    csv.shift
+    result = csv.headers
+    result
+  ensure
+    csv.close unless csv.nil?
+  end
+
   def close
     working_files.each do |file|
       system("rm #{file}")
@@ -169,14 +178,5 @@ class VoterFile::CSVDriver::CSVFile
             ENCODING 'LATIN1',
             QUOTE '#{quote == "'" ? "''" : quote}');
       }
-    end
-
-    def headers
-      csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
-      csv.shift
-      result = csv.headers
-      result
-    ensure
-      csv.close unless csv.nil?
     end
 end
