@@ -6,8 +6,12 @@ module VoterFile
       raise "Must override '#job' in subclass"
     end
 
+    def connection
+      raise "Must override '#connection' in subclass"
+    end
+
     def perform
-      driver = DedupDriver.new
+      driver = DedupDriver.new(connection)
       begin
         job(driver)
       ensure
@@ -16,7 +20,7 @@ module VoterFile
     end
 
     def perform_audit
-      driver = DedupAudit.new
+      driver = DedupAudit.new(connection)
       begin
         job(driver)
       ensure
