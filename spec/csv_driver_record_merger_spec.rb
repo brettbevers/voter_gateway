@@ -160,7 +160,7 @@ describe VoterFile::CSVDriver::RecordMerger do
       match_conditions = subject.exact_match_conditions(["column1", "column2"])
 
       match_conditions.should ==
-          "( ( s.column1 = t.column1 AND t.column1 IS NOT NULL ) AND ( s.column2 = t.column2 AND t.column2 IS NOT NULL ) )"
+          "( ( s.column1 = t.column1 ) AND ( s.column2 = t.column2 ) )"
     end
 
   end
@@ -189,9 +189,9 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "UPDATE working_source_table"
         sql.should include "SET #{target_key_name} = t.column1"
         sql.should include "FROM target_table t"
-        sql.should include "WHERE s.#{target_key_name} IS NULL AND ( ( s.column2 = t.column2 AND t.column2 IS NOT NULL )"
+        sql.should include "WHERE s.#{target_key_name} IS NULL AND ( ( s.column2 = t.column2 )"
         sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 AND t.col_3 = s.col_3 )"
-        sql.should include " AND ( s.column3 = t.column3 AND t.column3 IS NOT NULL ) )"
+        sql.should include " AND ( s.column3 = t.column3 ) )"
       end
 
       it "should handle the case where there are no column constraints" do
@@ -199,8 +199,8 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "UPDATE working_source_table"
         sql.should include "SET #{target_key_name} = t.column1"
         sql.should include "FROM target_table t"
-        sql.should include "WHERE s.#{target_key_name} IS NULL AND ( ( s.column2 = t.column2 AND t.column2 IS NOT NULL )"
-        sql.should include " AND ( s.column3 = t.column3 AND t.column3 IS NOT NULL ) )"
+        sql.should include "WHERE s.#{target_key_name} IS NULL AND ( ( s.column2 = t.column2 )"
+        sql.should include " AND ( s.column3 = t.column3 ) )"
       end
     end
 

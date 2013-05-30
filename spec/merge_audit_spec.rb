@@ -50,9 +50,9 @@ describe VoterFile::MergeAudit::AuditMerger do
       sql.should include "UPDATE working_source_table"
       sql.should include "SET #{VoterFile::CSVDriver::RecordMerger::TARGET_KEY_NAME} = t.column1, #{VoterFile::MergeAudit::AuditMerger::MATCH_AUDIT_NAME} = 0"
       sql.should include "FROM target_table t"
-      sql.should include "WHERE s.#{VoterFile::CSVDriver::RecordMerger::TARGET_KEY_NAME} IS NULL AND ( ( s.column2 = t.column2 AND t.column2 IS NOT NULL ) "
+      sql.should include "WHERE s.#{VoterFile::CSVDriver::RecordMerger::TARGET_KEY_NAME} IS NULL AND ( ( s.column2 = t.column2 ) "
       sql.should include " AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 )"
-      sql.should include " AND ( s.column3 = t.column3 AND t.column3 IS NOT NULL ) )"
+      sql.should include " AND ( s.column3 = t.column3 ) )"
     end
   end
 

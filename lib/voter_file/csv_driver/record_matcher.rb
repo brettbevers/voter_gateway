@@ -59,9 +59,9 @@ class VoterFile::CSVDriver::RecordMatcher
     conditions = column_group.map do |c|
       case c
         when Hash
-          "( s.#{c[:source_key]} = t.#{c[:target_key]} AND t.#{c[:target_key]} IS NOT NULL )"
+          "( s.#{c[:source_key]} = t.#{c[:target_key]} )"
         else
-          "( s.#{c} = t.#{c} AND t.#{c} IS NOT NULL )"
+          "( s.#{c} = t.#{c} )"
       end
     end
     "( #{conditions.join(" AND ")} )"
