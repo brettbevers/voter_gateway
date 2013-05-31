@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "voter-gateway"
-  s.version = "0.5.3"
+  s.version = "0.6.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["brettbevers"]
-  s.date = "2013-05-30"
+  s.date = "2013-05-31"
   s.email = "brett@nationbuilder.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
     "lib/voter_file/merge_audit_sql.rb",
     "spec/csv_driver_csv_file_spec.rb",
     "spec/csv_driver_database_table_spec.rb",
+    "spec/csv_driver_record_matcher_spec.rb",
     "spec/csv_driver_record_merger_spec.rb",
     "spec/csv_driver_spec.rb",
     "spec/csv_driver_working_table_spec.rb",

@@ -1,7 +1,7 @@
 class VoterFile::CSVDriver::RecordMatcher
 
   attr_accessor :target_table, :source_table, :exact_match_groups,
-                :column_constraints, :working_source_table
+                :column_constraints, :working_source_table, :join_clauses
 
   SOURCE_KEY_NAME = "working_source_id"
   TARGET_KEY_NAME = "working_target_id"
@@ -9,7 +9,8 @@ class VoterFile::CSVDriver::RecordMatcher
   def initialize(&block)
     @exact_match_groups = []
     @column_constraints = []
-    @working_source_table = block.call
+    @join_clauses = []
+    @working_source_table = block.call if block_given?
   end
 
   def exact_match_group(*col_names)
@@ -22,6 +23,10 @@ class VoterFile::CSVDriver::RecordMatcher
 
   def constrain_column(col_name, constraint)
     column_constraints << [col_name, constraint]
+  end
+
+  def join_table(*clause)
+    join_clauses << clause
   end
 
   def match_commands
@@ -41,7 +46,15 @@ class VoterFile::CSVDriver::RecordMatcher
   end
 
   def find_exact_match_commands
-    exact_match_groups.map{|g| find_exact_match_sql(g) }
+    commands = exact_match_groups.map do |group|
+      case group
+        when Array
+          find_exact_match_sql(group)
+        when VoterFile::CSVDriver::RecordMatcher
+          group.find_exact_match_commands
+      end
+    end
+    commands.flatten
   end
 
   def find_exact_match_sql(column_group)
@@ -51,7 +64,7 @@ class VoterFile::CSVDriver::RecordMatcher
     %Q{
       UPDATE #{working_source_table.name} s
         SET #{TARGET_KEY_NAME} = t.#{target_table.primary_key}
-        FROM #{target_table.name} t
+        FROM #{target_table.name} t #{join_sql}
         WHERE s.#{TARGET_KEY_NAME} IS NULL AND #{match_conditions} }
   end
 
@@ -70,6 +83,22 @@ class VoterFile::CSVDriver::RecordMatcher
   def column_constraint_conditions
     return nil if column_constraints.empty?
     "( " + column_constraints.map{|c| c[1].gsub('$S', "s.#{c[0]}").gsub('$T', "t.#{c[0]}") }.join(" AND ") + " )"
+  end
+
+  def join_sql
+    join_clauses.map{|clause| "JOIN #{clause[0].name} ON ( #{clause[1]} )"}.join(' ')
+  end
+
+  def find_exact_matches
+    matcher = VoterFile::CSVDriver::RecordMatcher.new
+    matcher.working_source_table = working_source_table
+    matcher.target_table = target_table
+    matcher.source_table = source_table
+
+    yield matcher
+
+    self.exact_match_groups << matcher
+    return matcher
   end
 
 end
