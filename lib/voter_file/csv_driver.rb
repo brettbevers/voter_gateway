@@ -5,41 +5,49 @@ module VoterFile
     WORKING_TABLE_PREFIX = "tmp_working_table"
 
     SUPPORTED_EXTENSIONS = {
-      :nb_parse_election_name =>
-%Q{
-  DROP FUNCTION IF EXISTS nb_parse_election_name(elec_date text, elec_type text);
-  CREATE FUNCTION nb_parse_election_name(elec_date text, elec_type text) RETURNS TEXT AS $$
-  DECLARE
-    year TEXT := EXTRACT(YEAR FROM elec_date::DATE)::TEXT;
-    type TEXT := lower(elec_type);
-  BEGIN
-    IF type = 'pr' THEN
-      RETURN year || '_primary';
-    ELSIF type = 'ge' THEN
-      RETURN year || '_general';
-    ELSIF type = 'pp' THEN
-      RETURN year || '_presidential_primary';
-    ELSIF type = 'sp' THEN
-      RETURN year || '_special';
-    ELSE
-      RETURN year || '_' || type;
-    END IF;
-  END
-  $$ LANGUAGE plpgsql;
-},
-    :nb_coerce_to_date_or_null =>
-%Q{
-  DROP FUNCTION IF EXISTS nb_coerce_to_date_or_null(date text);
-  CREATE FUNCTION nb_coerce_to_date_or_null(date text) RETURNS DATE AS $$
-  BEGIN
-      BEGIN
-          RETURN date::DATE;
-      EXCEPTION WHEN OTHERS THEN
-          RETURN NULL;
-      END;
-  END
-  $$ LANGUAGE plpgsql;
-}}
+      :nb_parse_election_name => %Q{
+        CREATE OR REPLACE FUNCTION nb_parse_election_name(elec_date text, elec_type text) RETURNS TEXT AS $$
+        DECLARE
+          year TEXT := EXTRACT(YEAR FROM elec_date::DATE)::TEXT;
+          type TEXT := lower(elec_type);
+        BEGIN
+          IF type = 'pr' THEN
+            RETURN year || '_primary';
+          ELSIF type = 'ge' THEN
+            RETURN year || '_general';
+          ELSIF type = 'pp' THEN
+            RETURN year || '_presidential_primary';
+          ELSIF type = 'sp' THEN
+            RETURN year || '_special';
+          ELSE
+            RETURN year || '_' || type;
+          END IF;
+        END
+        $$ LANGUAGE plpgsql;
+      },
+      :nb_coerce_to_date_or_null => %Q{
+        CREATE OR REPLACE FUNCTION nb_coerce_to_date_or_null(date text) RETURNS DATE AS $$
+        BEGIN
+          BEGIN
+            RETURN date::DATE;
+          EXCEPTION WHEN OTHERS THEN
+            RETURN NULL;
+          END;
+        END
+        $$ LANGUAGE plpgsql;
+      },
+      :nb_email_address_validator => %Q{
+        CREATE OR REPLACE FUNCTION nb_is_email_address_valid(email text) RETURNS BOOLEAN AS $$
+        BEGIN
+          RETURN (email IS NULL OR email = '')
+            OR (length(email) >= 3
+                AND length(email) <= 100
+                AND email LIKE '%@%'
+                AND email ~ '^\\S*\\.[a-zA-Z][a-zA-Z\\.]*[a-zA-Z]$');
+        END
+        $$ LANGUAGE plpgsql;
+      }
+    }
 
     def initialize(connection = nil)
       @db_connection = (connection || ActiveRecord::Base.connection)
