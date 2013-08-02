@@ -13,17 +13,19 @@ class VoterFile::CSVDriver::DatabaseTable
     @primary_key_type = data_type.to_sym
   end
 
-  def map_column_from_table(source_table_name, source_col, target_col, matching_col, as_expression=nil)
-    if as_expression
-      value = as_expression.gsub('$S', "s.#{source_col}").gsub('$T', "t.#{target_col}")
+  def map_column_from_table(options)
+    if options[:as_expression]
+      value = options[:as_expression].gsub('$S', "s.#{options[:source_col]}").gsub('$T', "t.#{options[:target_col]}")
     else
-      value = "s.#{source_col}"
+      value = "s.#{options[:source_col]}"
     end
+
+    where_clause = options[:filter] ? ' AND ' + options[:filter].map { |f| %Q{s."#{f[:column]}" #{f[:expression]}} }.join(' AND ') : ''
 
     %Q{
       UPDATE #{self.name} AS t
-      SET "#{target_col}" = #{value}
-      FROM #{source_table_name} AS s
-      WHERE t."#{matching_col}" = s."#{matching_col}";}
+      SET "#{options[:target_col]}" = #{value}
+      FROM #{options[:source_table_name]} AS s
+      WHERE t."#{options[:matching_col]}" = s."#{options[:matching_col]}" #{where_clause};}
   end
 end

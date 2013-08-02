@@ -141,16 +141,19 @@ describe VoterFile::CSVDriver::WorkingTable do
       source_col = "source_col"
       target_col = "target_col"
       matching_col = "matching_col"
+      filter_1 = {column: 'column_a', expression: 'IS NOT NULL'}
+      filter_2 = {column: 'column_b', expression: '= 0'}
 
-      sql = subject.map_column_from_table(source_table_name,
-                                                    source_col,
-                                                    target_col,
-                                                    matching_col)
+      sql = subject.map_column_from_table(source_table_name: source_table_name,
+                                          source_col: source_col,
+                                          target_col: target_col,
+                                          matching_col: matching_col,
+                                          filter: [filter_1, filter_2])
 
       sql.should include "UPDATE test_table AS t"
-      sql.should include "SET \"target_col\" = s.\"source_col\""
+      sql.should include %Q{SET "target_col" = s."source_col"}
       sql.should include "FROM source_table AS s"
-      sql.should include "WHERE t.\"matching_col\" = s.\"matching_col\""
+      sql.should include %Q{WHERE t."matching_col" = s."matching_col" AND s."column_a" IS NOT NULL AND s."column_b" = 0}
     end
 
     it "should return correct SQL for copying a column by matching on multiple keys" do
@@ -159,10 +162,10 @@ describe VoterFile::CSVDriver::WorkingTable do
       target_col = "target_col"
       matching_cols = %w{matching_col_1 matching_col_2}
 
-      sql = subject.map_column_from_table(source_table_name,
-                                          source_col,
-                                          target_col,
-                                          matching_cols)
+      sql = subject.map_column_from_table(source_table_name: source_table_name,
+                                          source_col: source_col,
+                                          target_col: target_col,
+                                          matching_col: matching_cols)
 
       sql.should include "UPDATE test_table AS t"
       sql.should include "SET \"target_col\" = s.\"source_col\""
