@@ -60,12 +60,15 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
   def update_target_records_sql
     return nil if is_insert_only
 
+    match_conditions = ''
+    match_conditions = "AND #{merge_constraint_conditions}" if merge_constraint_conditions
+
     update_sql = %Q{
       UPDATE #{target_table.name} t
         SET ( #{update_columns.join(', ')} ) =
           ( #{update_values.join(', ')} )
         FROM #{working_source_table.name} s
-        WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key}}
+        WHERE s.#{TARGET_KEY_NAME} = t.#{target_table.primary_key} #{match_conditions} }
 
     unless return_expressions.empty?
       update_sql = %Q{
@@ -86,7 +89,7 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     return nil if is_update_only
 
     match_conditions = ''
-    match_conditions = "AND #{insert_constraint_conditions}" if insert_constraint_conditions
+    match_conditions = "AND #{merge_constraint_conditions}" if merge_constraint_conditions
 
     insert_sql = %Q{
       INSERT INTO #{target_table.name} ( #{insert_columns.join(', ')} )
@@ -108,11 +111,11 @@ class VoterFile::CSVDriver::RecordMerger < VoterFile::CSVDriver::RecordMatcher
     return insert_sql
   end
 
-  def insert_constraint_conditions
+  def merge_constraint_conditions
     constraints = column_constraints
     constraints.delete_if { |c| c[1].include? '$T' }
     return nil if constraints.empty?
-    "( " + column_constraints.map { |c| c[1].gsub('$S', "s.#{c[0]}").gsub('$T', "t.#{c[0]}") }.join(" AND ") + " )"
+    "( " + column_constraints.map { |c| c[1].gsub('$S', "s.#{c[0]}") }.join(" AND ") + " )"
   end
 
   def update_columns
