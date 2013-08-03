@@ -46,32 +46,25 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def copy_column(column_name, options)
-    map_column_from_table(source_table_name: options[:from].name,
-                          source_col: column_name,
-                          target_col: column_name,
-                          matching_col: options[:key],
-                          filter: options[:filter])
+    map_column_from_table(options[:from].name, column_name, column_name, options[:key])
   end
 
-  def map_column_from_table(options)
-    if options[:as_expression]
-      value = options[:as_expression].gsub('$S', "s.\"#{options[:source_col]}\"").gsub('$T', "t.\"#{options[:target_col]}\"")
+  def map_column_from_table(source_table_name, source_col, target_col, matching_col, as_expression=nil)
+    if as_expression
+      value = as_expression.gsub('$S', "s.\"#{source_col}\"").gsub('$T', "t.\"#{target_col}\"")
     else
-      value = "s.\"#{options[:source_col]}\""
+      value = "s.\"#{source_col}\""
     end
 
-    if options[:matching_col].respond_to?(:map)
-      where_clause = options[:matching_col].map { |c| %Q{t."#{c}" = s."#{c}"} }.join(' AND ')
+    if matching_col.respond_to?(:map)
+      where_clause = matching_col.map { |c| %Q{t."#{c}" = s."#{c}"} }.join(' AND ')
     else
-      where_clause = %Q{t."#{options[:matching_col]}" = s."#{options[:matching_col]}"}
+      where_clause = %Q{t."#{matching_col}" = s."#{matching_col}"}
     end
-
-    where_clause += ' AND ' + options[:filter].map { |f| %Q{s."#{f[:column]}" #{f[:expression]}} }.join(' AND ') if options[:filter]
-
     %Q{
       UPDATE #{self.name} AS t
-      SET "#{options[:target_col]}" = #{value}
-      FROM #{options[:source_table_name]} AS s
+      SET "#{target_col}" = #{value}
+      FROM #{source_table_name} AS s
       WHERE #{where_clause};
     }
   end

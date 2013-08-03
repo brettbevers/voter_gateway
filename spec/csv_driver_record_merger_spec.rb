@@ -211,7 +211,7 @@ describe VoterFile::CSVDriver::RecordMerger do
         sql.should include "SET ( column1, column2 ) ="
         sql.should include "( value1, value2 )"
         sql.should include "FROM working_source_table s"
-        sql.should include "WHERE s.#{target_key_name} = t.column1 AND ( s.col_1 IS NOT NULL AND s.col_2 > 2 )"
+        sql.should include "WHERE s.#{target_key_name} = t.column1"
       end
 
       it "returns nil when insert only" do
