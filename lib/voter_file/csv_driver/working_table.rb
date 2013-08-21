@@ -21,8 +21,8 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def load_table_commands(source)
-    [ create_table_sql,
-      insert_from_sql(source.name) ]
+    [create_table_sql,
+     insert_from_sql(source.name)]
   end
 
   def create_table_sql
@@ -95,11 +95,11 @@ class VoterFile::CSVDriver::WorkingTable
 
   def add_necessary_geocoding_columns
     sql = ''
-    unless table_columns.map{|map| map[:name] }.include?(:residential_lat)
+    unless table_columns.map { |map| map[:name] }.include?(:residential_lat)
       sql << "ALTER TABLE #{name} ADD COLUMN residential_lat DECIMAL;"
     end
 
-    unless table_columns.map{|map| map[:name] }.include?(:residential_lng)
+    unless table_columns.map { |map| map[:name] }.include?(:residential_lng)
       sql << "\nALTER TABLE #{name} ADD COLUMN residential_lng DECIMAL;"
     end
 
@@ -119,11 +119,11 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def mapped_column_names
-    table_columns.select{|c| c[:mapped]}.map{|c| c[:name].to_sym }
+    table_columns.select { |c| c[:mapped] }.map { |c| c[:name].to_sym }
   end
 
   def table_column_names
-    table_columns.map{|c| c[:name].to_sym }
+    table_columns.map { |c| c[:name].to_sym }
   end
 
   def add_column(col_name, opts={})
@@ -142,7 +142,7 @@ class VoterFile::CSVDriver::WorkingTable
     opts[:as] ||= "$::#{opts[:type]}"
     if opts[:from] && opts[:as].is_a?(String)
       opts[:as].gsub!("$", "\"#{opts[:from]}\"")
-    else
+    end
 
     # record table column
     add_column(col_name, opts)
@@ -172,6 +172,6 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def column_constraint_conditions
-    "( " + column_constraints.map{|c| c[1].gsub('$', "\"#{c[0]}\"") }.join(" AND ") + " )"
+    "( " + column_constraints.map { |c| c[1].gsub('$', "\"#{c[0]}\"") }.join(" AND ") + " )"
   end
 end

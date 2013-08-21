@@ -40,7 +40,7 @@ class VoterFile::CSVDriver::CSVFile
   def remove_malformed_rows
     corrected_file = "#{path}.corrected"
     CSV.open(corrected_file, 'wb', col_sep: delimiter, quote_char: quote) do |corrected_csv|
-      csv = CSV.open(path, col_sep: delimiter, quote_char: quote, :headers => @custom_headers.empty? ? :first_row : @custom_headers, return_headers: true)
+      csv = CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, return_headers: true)
       while row = next_row(csv)
         corrected_csv << row unless row.headers.size != csv.headers.size
       end
@@ -62,28 +62,37 @@ class VoterFile::CSVDriver::CSVFile
     row
   end
 
-  def load_file_commands
-    yield working_table.create_table_sql
+  def load_file_commands(&block)
     if mapped_column_names.empty?
-      yield bulk_copy_into_table_sql(path)
+      load_csv_in_bulk &block
     else
-      CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true) do |csv|
-        until csv.eof?
-          yield insert_batch_sql!(csv)
-        end
+      load_csv_by_row &block
+    end
+  end
+
+  def load_csv_by_row
+    yield working_table.create_table_sql
+    CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true) do |csv|
+      until csv.eof?
+        yield insert_batch_sql!(csv)
       end
     end
   end
 
+  def load_csv_in_bulk
+    yield create_temp_table_sql
+    yield bulk_copy_into_table_sql(path)
+  end
+
   def insert_batch_sql!(csv)
     row_count = 0
-    tmp_csv = CSV.open(Tempfile.new('batch').path, 'wb') do |tmp|
-      tmp << mapped_column_names
-      until csv.eof? || row_count == BATCH_SIZE
-        tmp << convert_row(csv.shift)
-        row_count += 1
-      end
+    tmp_csv = CSV.open(Tempfile.new('batch').path, 'wb')
+    tmp_csv << mapped_column_names
+    until csv.eof? || row_count == BATCH_SIZE
+      tmp_csv << convert_row(csv.shift)
+      row_count += 1
     end
+    tmp_csv.close
     return bulk_copy_into_table_sql(tmp_csv.path)
   end
 
@@ -125,6 +134,10 @@ class VoterFile::CSVDriver::CSVFile
     working_table.send(:set_primary_key, *args)
   end
 
+  def default_data_type=(*args)
+    working_table.send(:default_data_type=, *args)
+  end
+
   def close
     working_files.each { |file| system("rm #{file}") }
   end
@@ -137,6 +150,25 @@ class VoterFile::CSVDriver::CSVFile
           HEADER TRUE,
           ENCODING 'LATIN1',
           QUOTE '#{quote == "'" ? "''" : quote}');
+    SQL
+  end
+
+  def headers
+    headers = nil
+    CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, return_headers: true) do |csv|
+      headers = csv.shift.headers
+    end
+    return headers
+  end
+
+  def raw_csv_schema
+    headers.map{ |h| "\"#{h}\" TEXT" }.join(', ')
+  end
+
+  def create_temp_table_sql
+    <<-SQL
+    DROP TABLE IF EXISTS #{working_table.name};
+    CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});
     SQL
   end
 end

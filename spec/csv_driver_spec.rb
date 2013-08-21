@@ -49,48 +49,22 @@ describe VoterFile::CSVDriver do
   end
 
   describe "#load_file" do
-
     it "yields the file located at the input path" do
-      csv_file, sql = stub, stub
+      csv_file, sql, working_table = stub, stub, stub
       VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
       ActiveRecord::Base.stub(:transaction).and_yield()
 
       subject_should_execute_sql(sql)
-      csv_file.should_receive(:load_file_commands).and_return([sql])
-      csv_file.should_receive(:import_rows)
+      csv_file.should_receive(:load_file_commands) { |&block| block.call(sql) }
+      csv_file.should_receive(:working_table).and_return(working_table)
 
-      file = subject.load_file(test_file_path) do |file|
+      return_value = subject.load_file(test_file_path) do |file|
         file.should == csv_file
       end
-      file.should == csv_file
-    end
+      return_value.should == working_table
 
-    it "uses the custom headers when loading the file" do
-      csv_file, working_table, create_table_sql, insert_row_sql = stub, stub, stub, stub
-
-      subject.stub(create_working_table: working_table)
-      VoterFile::CSVDriver::CSVFile.should_receive(:new).with(test_file_path, working_table, %w{header1 header2 header3}).and_return(csv_file)
-      ActiveRecord::Base.stub(:transaction).and_yield()
-      csv_file.should_receive(:load_file_commands).and_return([create_table_sql])
-      subject_should_execute_sql(create_table_sql)
-      csv_file.should_receive(:import_rows).and_yield(insert_row_sql)
-      subject_should_execute_sql(insert_row_sql)
-
-      subject.load_file(test_file_path, headers: %w{header1 header2 header3})
-    end
-
-    it "uses the bulk insert size and import method" do
-      csv_file, working_table, create_table_sql, insert_row_sql = stub, stub, stub, stub
-
-      subject.stub(create_working_table: working_table)
-      VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
-      ActiveRecord::Base.stub(:transaction).and_yield()
-      csv_file.should_receive(:load_file_commands).and_return([create_table_sql])
-      subject_should_execute_sql(create_table_sql)
-      csv_file.should_receive(:import_rows).with({bulk_insert_size: 1000, :import_method => :by_row}).and_yield(insert_row_sql)
-      subject_should_execute_sql(insert_row_sql)
-
-      subject.load_file(test_file_path, bulk_insert_size: 1000, :import_method => :by_row)
+      VoterFile::CSVDriver::CSVFile.rspec_reset
+      ActiveRecord::Base.rspec_reset
     end
   end
 
