@@ -139,7 +139,7 @@ class VoterFile::CSVDriver::WorkingTable
     # parse options
     opts[:mapped] = true
     opts[:type] ||= default_data_type
-    opts[:as] ||= "$::#{opts[:type]}"
+    opts[:as] = "$::#{opts[:type]}" if opts[:as].nil?
     if opts[:from] && opts[:as].is_a?(String)
       opts[:as].gsub!("$", "\"#{opts[:from]}\"")
     end
