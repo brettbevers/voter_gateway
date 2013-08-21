@@ -93,23 +93,18 @@ module VoterFile
       self.working_files = []
     end
 
-    def load_file(path, options = {})
+    def load_file(path)
       # the CSVFile instance requires one working table
-      file = CSVFile.new(path, create_working_table, options[:headers] || [])
+      file = CSVFile.new(path, create_working_table)
       working_files << file
 
       yield file if block_given?
 
       ActiveRecord::Base.transaction do
-        file.load_file_commands.each do |sql|
-          db_connection.execute(sql)
-        end
-        import_method = options[:import_method] || :bulk
-        bulk_insert_size = options[:bulk_insert_size] || 1
-        file.import_rows(bulk_insert_size: bulk_insert_size, import_method: import_method) { |sql| exec_sql(sql) }
+        file.load_file_commands { |sql| db_connection.execute(sql) }
       end
 
-      file
+      return file.working_table
     end
 
     def load_table(source, &block)

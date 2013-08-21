@@ -139,19 +139,16 @@ class VoterFile::CSVDriver::WorkingTable
     # parse options
     opts[:mapped] = true
     opts[:type] ||= default_data_type
-    unless opts[:as]
-      opts[:as] = "$::#{opts[:type]}"
-    end
+    opts[:as] ||= "$::#{opts[:type]}"
+    if opts[:from] && opts[:as].is_a?(String)
+      opts[:as].gsub!("$", "\"#{opts[:from]}\"")
+    else
 
     # record table column
     add_column(col_name, opts)
 
     # record column converter
-    if opts[:from]
-      column_converters << opts[:as].gsub("$", "\"#{opts[:from]}\"")
-    else
-      column_converters << opts[:as]
-    end
+    column_converters << opts[:as]
   end
 
   def copy_schema_from(database_table)
@@ -167,7 +164,7 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def drop
-    "DROP TABLE IF EXISTS #{self.name};"
+    "DROP TABLE IF EXISTS #{name};"
   end
 
   def constrain_column(col_name, constraint)
