@@ -17,7 +17,6 @@ class VoterFile::CSVDriver::CSVFile
 
   def initialize(original, working_table)
     @original = File.expand_path(original)
-    @processed = nil
     @delimiter = DEFAULT_DELIMITER
     @quote = DEFAULT_QUOTE
     @working_table = working_table
@@ -65,16 +64,20 @@ class VoterFile::CSVDriver::CSVFile
 
   def load_file_commands
     yield working_table.create_table_sql
-    CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true) do |csv|
-      until csv.eof?
-        yield insert_batch_sql!(csv)
+    if mapped_column_names.empty?
+      yield bulk_copy_into_table_sql(path)
+    else
+      CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true) do |csv|
+        until csv.eof?
+          yield insert_batch_sql!(csv)
+        end
       end
     end
   end
 
   def insert_batch_sql!(csv)
     row_count = 0
-    tmp_csv = CSV.open(Tempfile.new('batch').path, 'w') do |tmp|
+    tmp_csv = CSV.open(Tempfile.new('batch').path, 'wb') do |tmp|
       tmp << mapped_column_names
       until csv.eof? || row_count == BATCH_SIZE
         tmp << convert_row(csv.shift)
@@ -87,13 +90,7 @@ class VoterFile::CSVDriver::CSVFile
   def convert_row(row)
     converted_row = []
     column_converters.each do |converter|
-      converted_value = case converter
-                          when Proc
-                            converter.call(row)
-                          else
-                            converter
-                        end
-      converted_row << converted_value
+      converted_row << converter.call(row)
     end
     return converted_row
   end
@@ -111,10 +108,16 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def map_column(col_name, opts={}, &block)
-    unless opts[:as]
-      from_string = opts[:from].to_s
-      opts[:as] = (block || ->(row) { row[from_string] })
-    end
+    opts[:as] = case opts[:as]
+                  when Proc
+                    opts[:as]
+                  when nil
+                    from_string = opts[:from].to_s
+                    block || ->(row) { row[from_string] }
+                  else
+                    value = opts[:as]
+                    ->(row) { value }
+                end
     working_table.send(:map_column, col_name, opts)
   end
 
@@ -125,8 +128,6 @@ class VoterFile::CSVDriver::CSVFile
   def close
     working_files.each { |file| system("rm #{file}") }
   end
-
-  private
 
   def bulk_copy_into_table_sql(csv_path)
     <<-SQL
