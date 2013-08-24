@@ -139,9 +139,9 @@ class VoterFile::CSVDriver::WorkingTable
     # parse options
     opts[:mapped] = true
     opts[:type] ||= default_data_type
-    opts[:as] = "$::#{opts[:type]}" if opts[:as].nil?
+    opts[:as] = "$S::#{opts[:type]}" if opts[:as].nil?
     if opts[:from] && opts[:as].is_a?(String)
-      opts[:as].gsub!("$", "\"#{opts[:from]}\"")
+      opts[:as].gsub!("$S", "\"#{opts[:from]}\"")
     end
 
     # record table column
@@ -172,6 +172,6 @@ class VoterFile::CSVDriver::WorkingTable
   end
 
   def column_constraint_conditions
-    "( " + column_constraints.map { |c| c[1].gsub('$', "\"#{c[0]}\"") }.join(" AND ") + " )"
+    "( " + column_constraints.map { |c| c[1].gsub('$S', "\"#{c[0]}\"") }.join(" AND ") + " )"
   end
 end
