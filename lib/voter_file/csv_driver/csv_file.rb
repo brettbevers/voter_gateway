@@ -149,7 +149,7 @@ class VoterFile::CSVDriver::CSVFile
           DELIMITER '#{delimiter == "'" ? "''" : delimiter}',
           HEADER TRUE,
           ENCODING 'LATIN1',
-          QUOTE '#{quote == "'" ? "''" : quote}');
+          QUOTE $quote_character$#{quote == "'" ? "''" : quote}$quote_character$);
     SQL
   end
 
