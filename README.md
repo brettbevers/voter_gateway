@@ -107,7 +107,7 @@ The `map_column` is probably the most used (but the first two are required as we
 | Option | Description |
 | --- | --- |
 | `:type` | The type of data contained in the column |
-| `:as` | A SQL expression that should be used in place of the column name. `$` signs are replaced by the column name. |
+| `:as` | A SQL expression that should be used in place of the column name. `$S` signs are replaced by the column name. |
 | `:from` | The column to pull from |
 
 You may call `map_column` and `add_column` multiple times.
