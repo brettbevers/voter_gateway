@@ -79,13 +79,13 @@ describe VoterFile::CSVDriver::WorkingTable do
     it "should add an 'as' option if there is a type specified" do
       subject.should_receive(:add_column) do |name, opts|
         name.should == "col_1"
-        opts[:as].should == "$::INT"
+        opts[:as].should == "$S::INT"
       end
       subject.map_column "col_1", :type => :INT
     end
 
-    it "should substitute the 'from' column for '$' in the resulting converter" do
-      subject.map_column "col_1", :from => "count", :type => :INT, :as => '$ + 1'
+    it "should substitute the 'from' column for '$S' in the resulting converter" do
+      subject.map_column "col_1", :from => "count", :type => :INT, :as => '$S + 1'
       subject.column_converters.first.should == "\"count\" + 1"
     end
 
@@ -130,7 +130,8 @@ describe VoterFile::CSVDriver::WorkingTable do
     end
 
     it "should add a 'where' clause if column constraints are specified" do
-      subject.should_receive(:column_constraints).at_least(1).times.and_return([[:col_1, "$ IS NOT NULL"], [:col_2, "$ > 1"]])
+      subject.should_receive(:column_constraints).
+        at_least(1).times.and_return([[:col_1, "$S IS NOT NULL"], [:col_2, "$S > 1"]])
       sql.should include "WHERE ( \"col_1\" IS NOT NULL AND \"col_2\" > 1 )"
     end
   end
@@ -213,14 +214,14 @@ describe VoterFile::CSVDriver::WorkingTable do
 
   describe "#constrain_column" do
     it "should add the column and constraint to column_constraints" do
-      subject.column_constraints.should_receive(:<<).with([:col_1, "$ IS NOT NULL"])
-      subject.constrain_column 'col_1', '$ IS NOT NULL'
+      subject.column_constraints.should_receive(:<<).with([:col_1, "$S IS NOT NULL"])
+      subject.constrain_column 'col_1', '$S IS NOT NULL'
     end
   end
 
   describe "#column_constraint_conditions" do
     it "should return the conjunction of column constraints" do
-      subject.stub(:column_constraints => [[:col_1, "$ IS NOT NULL"], [:col_2, "$ > 1"]])
+      subject.stub(:column_constraints => [[:col_1, "$S IS NOT NULL"], [:col_2, "$S > 1"]])
       subject.column_constraint_conditions.should == "( \"col_1\" IS NOT NULL AND \"col_2\" > 1 )"
     end
   end
