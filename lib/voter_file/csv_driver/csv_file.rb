@@ -139,17 +139,17 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def close
-    working_files.each { |file| system("rm #{file}") }
+    working_files.each { |file| File.unlink(file) }
   end
 
   def bulk_copy_into_table_sql(csv_path)
-    <<-SQL
-      COPY #{working_table.name} FROM '#{csv_path}'
-        (FORMAT CSV,
-          DELIMITER '#{delimiter == "'" ? "''" : delimiter}',
-          HEADER TRUE,
-          ENCODING 'LATIN1',
-          QUOTE $quote_character$#{quote == "'" ? "''" : quote}$quote_character$);
+    return <<-SQL
+    COPY #{working_table.name} FROM '#{csv_path}'
+      (FORMAT CSV,
+        DELIMITER '#{delimiter == "'" ? "''" : delimiter}',
+        HEADER TRUE,
+        ENCODING 'LATIN1',
+        QUOTE $quote_character$#{quote == "'" ? "''" : quote}$quote_character$);
     SQL
   end
 
@@ -166,7 +166,7 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def create_temp_table_sql
-    <<-SQL
+    return <<-SQL
     DROP TABLE IF EXISTS #{working_table.name};
     CREATE TEMPORARY TABLE #{working_table.name} (#{raw_csv_schema});
     SQL
