@@ -131,7 +131,8 @@ describe VoterFile::CSVDriver::CSVFile do
       create_table_sql = stub
       working_table.should_receive(:mapped_column_names).and_return(['header_1'])
       working_table.should_receive(:create_table_sql).and_return(create_table_sql)
-      subject.load_file_commands { |sql| sql.should == create_table_sql }
+      subject.should_receive(:bulk_copy_into_table_sql).and_return(create_table_sql)
+      subject.load_file_commands { |sql| sql.should eq create_table_sql }
     end
   end
 
