@@ -2,7 +2,11 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe VoterFile::CSVDriver::CSVFile do
 
-  let(:test_file_path) { Tempfile.new('test').path }
+  let(:test_file_path) do
+    # stash the object so GC doesn't reclaim the file
+    @tmp = Tempfile.new('test')
+    @tmp.path
+  end
   let(:working_table) { stub(name: 'working_table', mapped_column_names: [], column_converters: []) }
   let(:subject) { VoterFile::CSVDriver::CSVFile.new(test_file_path, working_table) }
 
