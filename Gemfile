@@ -20,4 +20,5 @@ group :development, :test do
   gem "pry"
   gem "pry-nav"
   gem "pry-rails"
+  gem 'ci_reporter'
 end
