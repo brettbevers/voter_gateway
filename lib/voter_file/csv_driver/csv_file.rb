@@ -86,7 +86,9 @@ class VoterFile::CSVDriver::CSVFile
 
   def insert_batch_sql!(csv)
     row_count = 0
-    tmp_csv = CSV.open(Tempfile.new('batch').path, 'wb')
+    @tmp_file = Tempfile.new('batch')
+    @tmp_file.chmod(0644)
+    tmp_csv = CSV.open(@tmp_file.path, 'wb')
     tmp_csv << mapped_column_names
     until csv.eof? || row_count == BATCH_SIZE
       tmp_csv << convert_row(csv.shift)

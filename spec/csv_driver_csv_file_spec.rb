@@ -98,11 +98,31 @@ describe VoterFile::CSVDriver::CSVFile do
   end
 
   describe '#load_file_commands' do
-    it 'returns the sql to create a temporary table' do
+    before :each do
       File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\n" }
+    end
+
+    context 'temporary file used in csv file class' do
+      before :each do
+        working_table.should_receive(:mapped_column_names).and_return(['header_1'])
+        working_table.should_receive(:create_table_sql).and_return('')
+        subject.should_receive(:bulk_copy_into_table_sql) { |file| @file_path = file }
+        subject.load_file_commands { }
+      end
+
+      it 'can be opened by other users when loading by row' do
+        File.world_readable?(@file_path).should_not be_nil
+      end
+
+      it 'can exist after garbage collection' do
+        GC.start
+        File.exists?(@file_path).should be_true
+      end
+    end
+
+    it 'returns the sql to create a temporary table' do
       actual_sql = ''
       subject.load_file_commands { |sql| actual_sql << sql }
-
       actual_sql.should include 'DROP TABLE IF EXISTS working_table;'
       actual_sql.should include 'CREATE TEMPORARY TABLE working_table ("header 1" TEXT, "header 2" TEXT, "header 3" TEXT);'
     end
