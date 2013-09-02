@@ -88,7 +88,7 @@ class VoterFile::CSVDriver::CSVFile
     row_count = 0
     @tmp_file = Tempfile.new('batch')
     @tmp_file.chmod(0644)
-    tmp_csv = CSV.open(@tmp_file.path, 'wb')
+    tmp_csv = CSV.open(@tmp_file.path, 'wb', col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true)
     tmp_csv << mapped_column_names
     until csv.eof? || row_count == BATCH_SIZE
       tmp_csv << convert_row(csv.shift)
