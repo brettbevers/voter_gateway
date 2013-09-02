@@ -140,6 +140,10 @@ class VoterFile::CSVDriver::CSVFile
     working_table.send(:default_data_type=, *args)
   end
 
+  def constrain_column(*args)
+    working_table.send(:constrain_column, *args)
+  end
+
   def close
     working_files.each { |file| File.unlink(file) }
   end
@@ -156,11 +160,11 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def headers
-    headers = nil
+    return @headers if @headers
     CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, return_headers: true) do |csv|
-      headers = csv.shift.headers
+      @headers = csv.shift.headers
     end
-    return headers
+    @headers
   end
 
   def raw_csv_schema
