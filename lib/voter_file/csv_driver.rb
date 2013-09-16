@@ -95,7 +95,7 @@ module VoterFile
 
     def load_file(path)
       # the CSVFile instance requires one working table
-      file = CSVFile.new(path, create_working_table)
+      file = CSVFile.new(path, create_working_table, db_connection)
       working_files << file
 
       yield file if block_given?
