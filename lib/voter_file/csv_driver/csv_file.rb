@@ -83,12 +83,12 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def stream_data_from(csv)
-    attributes = {
-      format: 'csv',
-      delimiter: "'#{delimiter == "'" ? "''" : delimiter}'",
-      header: 'true',
-      encoding: 'latin1',
-      quote: "$quote_character$#{quote == "'" ? "''" : quote}$quote_character$"
+    attributes = [
+      "format csv",
+      "delimiter '#{delimiter == "'" ? "''" : delimiter}'",
+      "header true",
+      "encoding 'latin1'",
+      "quote $quote_character$#{quote == "'" ? "''" : quote}$quote_character$"
     }
     VoterFile::PostgresCopy.copy(working_table.name, attributes, @connection) do |writer|
       writer.write(*mapped_column_names)

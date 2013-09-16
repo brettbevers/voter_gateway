@@ -134,7 +134,9 @@ module VoterFile
         self.table_name = source
       end
 
-      raise "Relation '#{source}' does not exist" unless db_connection.table_exists? source
+      unless db_connection.table_exists? source
+        raise "Relation '#{source}' does not exist"
+      end
       table = DatabaseTable.new(source)
       table.table_column_names = model.column_names.map(&:to_sym)
 
