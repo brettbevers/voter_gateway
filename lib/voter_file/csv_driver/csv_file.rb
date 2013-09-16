@@ -83,7 +83,7 @@ class VoterFile::CSVDriver::CSVFile
   end
 
   def stream_data_from(csv)
-    VoterFile::PostgresCopy.copy(working_table.name, [], @connection) do |writer|
+    VoterFile::PostgresCopy.copy(working_table.name, mapped_column_names, @connection) do |writer|
       writer.write(*mapped_column_names)
       until csv.eof?
         writer.write(*convert_row(csv.shift))
