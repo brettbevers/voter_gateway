@@ -7,8 +7,18 @@ describe VoterFile::CSVDriver::CSVFile do
     @tmp = Tempfile.new('test')
     @tmp.path
   end
+  let(:raw_conn) { double() }
+  let(:conn) { double() }
   let(:working_table) { stub(name: 'working_table', mapped_column_names: [], column_converters: []) }
-  let(:subject) { VoterFile::CSVDriver::CSVFile.new(test_file_path, working_table) }
+  let(:subject) { VoterFile::CSVDriver::CSVFile.new(test_file_path, working_table, conn) }
+
+  before do
+    conn.stub(:raw_connection) { raw_conn }
+    raw_conn.stub(:put_copy_data) { |buffer| true }
+    raw_conn.stub(:put_copy_end) { |buffer| true }
+    raw_conn.stub(:exec) { |sql| }
+    raw_conn.stub(:get_result) { nil }
+  end
 
   after(:all) do
     File.delete(test_file_path)
@@ -102,24 +112,6 @@ describe VoterFile::CSVDriver::CSVFile do
       File.open(test_file_path, 'w') { |f| f << "header 1,header 2,header 3\n" }
     end
 
-    context 'temporary file used in csv file class' do
-      before :each do
-        working_table.should_receive(:mapped_column_names).and_return(['header_1'])
-        working_table.should_receive(:create_table_sql).and_return('')
-        subject.should_receive(:bulk_copy_into_table_sql) { |file| @file_path = file }
-        subject.load_file_commands { }
-      end
-
-      it 'can be opened by other users when loading by row' do
-        File.world_readable?(@file_path).should_not be_nil
-      end
-
-      it 'can exist after garbage collection' do
-        GC.start
-        File.exists?(@file_path).should be_true
-      end
-    end
-
     it 'returns the sql to create a temporary table' do
       actual_sql = ''
       subject.load_file_commands { |sql| actual_sql << sql }
@@ -131,7 +123,6 @@ describe VoterFile::CSVDriver::CSVFile do
       create_table_sql = stub
       working_table.should_receive(:mapped_column_names).and_return(['header_1'])
       working_table.should_receive(:create_table_sql).and_return(create_table_sql)
-      subject.should_receive(:bulk_copy_into_table_sql).and_return(create_table_sql)
       subject.load_file_commands { |sql| sql.should eq create_table_sql }
     end
   end

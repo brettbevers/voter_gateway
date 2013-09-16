@@ -52,6 +52,9 @@ describe VoterFile::CSVDriver do
     it "yields the file located at the input path" do
       csv_file, sql, working_table = stub, stub, stub
       VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
+      db_connection = double
+      db_connection.should_receive(:transaction).and_yield
+      subject.should_receive(:db_connection) { db_connection }
       ActiveRecord::Base.stub(:transaction).and_yield()
 
       subject_should_execute_sql(sql)
@@ -97,8 +100,9 @@ describe VoterFile::CSVDriver do
       ar_model = stub(:column_names => ['col1'])
       Class.stub(:new => ar_model)
 
-      db_connection = stub(:table_exists? => true)
-      subject.stub(:db_connection).and_return(db_connection)
+      db_connection = double
+      db_connection.stub(:table_exists?).and_return(true)
+      subject.should_receive(:db_connection) { db_connection }
 
       db_table = subject.load_table_from_db(test_table_name) {}
       db_table.should be_a VoterFile::CSVDriver::DatabaseTable

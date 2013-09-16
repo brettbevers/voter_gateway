@@ -100,7 +100,7 @@ module VoterFile
 
       yield file if block_given?
 
-      ActiveRecord::Base.transaction do
+      db_connection.transaction do
         file.load_file_commands { |sql| db_connection.execute(sql) }
       end
 

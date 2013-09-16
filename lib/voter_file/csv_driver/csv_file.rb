@@ -7,7 +7,6 @@ class CSV
 end
 
 class VoterFile::CSVDriver::CSVFile
-
   attr_accessor :delimiter, :quote
   attr_reader :original, :working_table, :working_files
 
@@ -15,7 +14,8 @@ class VoterFile::CSVDriver::CSVFile
   DEFAULT_QUOTE = '^'
   BATCH_SIZE = 100000
 
-  def initialize(original, working_table)
+  def initialize(original, working_table, connection = nil)
+    @connection = connection
     @original = File.expand_path(original)
     @delimiter = DEFAULT_DELIMITER
     @quote = DEFAULT_QUOTE
@@ -73,9 +73,7 @@ class VoterFile::CSVDriver::CSVFile
   def load_csv_by_row
     yield working_table.create_table_sql
     CSV.open(path, col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true) do |csv|
-      until csv.eof?
-        yield insert_batch_sql!(csv)
-      end
+      stream_data_from(csv)
     end
   end
 
@@ -84,18 +82,20 @@ class VoterFile::CSVDriver::CSVFile
     yield bulk_copy_into_table_sql(path)
   end
 
-  def insert_batch_sql!(csv)
-    row_count = 0
-    @tmp_file = Tempfile.new('batch')
-    @tmp_file.chmod(0644)
-    tmp_csv = CSV.open(@tmp_file.path, 'wb', col_sep: delimiter, quote_char: quote, headers: :first_row, skip_blanks: true)
-    tmp_csv << mapped_column_names
-    until csv.eof? || row_count == BATCH_SIZE
-      tmp_csv << convert_row(csv.shift)
-      row_count += 1
+  def stream_data_from(csv)
+    attributes = {
+      format: 'csv',
+      delimiter: "'#{delimiter == "'" ? "''" : delimiter}'",
+      header: 'true',
+      encoding: 'latin1',
+      quote: "$quote_character$#{quote == "'" ? "''" : quote}$quote_character$"
+    }
+    VoterFile::PostgresCopy.copy(working_table.name, attributes, @connection) do |writer|
+      writer.write(*mapped_column_names)
+      until csv.eof?
+        writer.write(*convert_row(csv.shift))
+      end
     end
-    tmp_csv.close
-    return bulk_copy_into_table_sql(tmp_csv.path)
   end
 
   def convert_row(row)
