@@ -8,9 +8,9 @@ describe VoterFile::CSVDriver do
   let(:db_connection) { stub }
 
   def subject_should_execute_sql(sql)
-    db_connection = stub
-    subject.should_receive(:db_connection).ordered.and_return(db_connection)
-    db_connection.should_receive(:execute).with(sql)
+    db_connection.stub(:transaction).and_yield
+    subject.stub(:db_connection).and_return(db_connection)
+    db_connection.should_receive(:execute).ordered.with(sql)
   end
 
   describe "#initialize" do
@@ -52,10 +52,8 @@ describe VoterFile::CSVDriver do
     it "yields the file located at the input path" do
       csv_file, sql, working_table = stub, stub, stub
       VoterFile::CSVDriver::CSVFile.stub(:new => csv_file)
-      ActiveRecord::Base.stub(:transaction).and_yield()
-
       subject_should_execute_sql(sql)
-      csv_file.should_receive(:load_file_commands) { |&block| block.call(sql) }
+      csv_file.should_receive(:load_file_commands).and_yield(sql)
       csv_file.should_receive(:working_table).and_return(working_table)
 
       return_value = subject.load_file(test_file_path) do |file|
@@ -97,7 +95,8 @@ describe VoterFile::CSVDriver do
       ar_model = stub(:column_names => ['col1'])
       Class.stub(:new => ar_model)
 
-      db_connection = stub(:table_exists? => true)
+      db_connection = double
+      db_connection.stub(:table_exists?).and_return(true)
       subject.stub(:db_connection).and_return(db_connection)
 
       db_table = subject.load_table_from_db(test_table_name) {}

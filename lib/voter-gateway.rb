@@ -19,4 +19,4 @@ require 'voter_file/dedup_job'
 require 'voter_file/csv_audit'
 require 'voter_file/database_audit'
 require 'voter_file/dedup_audit'
-
+require 'voter_file/postgres_copy'

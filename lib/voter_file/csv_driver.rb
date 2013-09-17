@@ -95,12 +95,12 @@ module VoterFile
 
     def load_file(path)
       # the CSVFile instance requires one working table
-      file = CSVFile.new(path, create_working_table)
+      file = CSVFile.new(path, create_working_table, db_connection)
       working_files << file
 
       yield file if block_given?
 
-      ActiveRecord::Base.transaction do
+      db_connection.transaction do
         file.load_file_commands { |sql| db_connection.execute(sql) }
       end
 
@@ -134,7 +134,9 @@ module VoterFile
         self.table_name = source
       end
 
-      raise "Relation '#{source}' does not exist" unless db_connection.table_exists? source
+      unless db_connection.table_exists? source
+        raise "Relation '#{source}' does not exist"
+      end
       table = DatabaseTable.new(source)
       table.table_column_names = model.column_names.map(&:to_sym)
 
