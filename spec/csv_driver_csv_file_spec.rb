@@ -7,8 +7,8 @@ describe VoterFile::CSVDriver::CSVFile do
     @tmp = Tempfile.new('test')
     @tmp.path
   end
-  let(:raw_conn) { double() }
-  let(:conn) { double() }
+  let(:raw_conn) { double('raw_conn') }
+  let(:conn) { double('connection') }
   let(:working_table) { stub(name: 'working_table', mapped_column_names: [], column_converters: []) }
   let(:subject) { VoterFile::CSVDriver::CSVFile.new(test_file_path, working_table, conn) }
 
@@ -17,7 +17,7 @@ describe VoterFile::CSVDriver::CSVFile do
     raw_conn.stub(:put_copy_data) { |buffer| true }
     raw_conn.stub(:put_copy_end) { |buffer| true }
     raw_conn.stub(:exec) { |sql| }
-    raw_conn.stub(:get_result) { nil }
+    raw_conn.stub(:get_result).and_return(nil)
   end
 
   after(:all) do

@@ -1,5 +1,7 @@
 module VoterFile
   module PostgresCopy
+    class Error < StandardError; end
+
     class Writer
       def initialize(raw_conn)
         @conn = raw_conn
@@ -25,7 +27,6 @@ module VoterFile
 
     #copy all events from the other adapter into my database
     def self.copy(table_name, attributes, conn, truncate = false, &block)
-      conn ||= ActiveRecord::Base.connection
       raw_conn = conn.raw_connection
 
       if truncate
@@ -45,14 +46,16 @@ module VoterFile
       rescue Errno => err
         errmsg = "%s while reading copy data: %s, message: %s" % [ err.class.name, err.message ]
         raw_conn.put_copy_end( errmsg )
-        raise errmsg
+        raise Error, errmsg
       rescue PG::Error => e
         raw_conn.exec "ROLLBACK"
-        raise e
+        raise Error, e
       else
         raw_conn.put_copy_end
         while res = raw_conn.get_result #KEEP THIS HERE - it's necessary to flush the buffer
-          #puts "Result of COPY is: %s, message: %s" % [ res.res_status(res.result_status), res.result_error_message ]
+          unless res.result_error_message.blank?
+            raise Error, res.result_error_message
+          end
         end
       end
     end
