@@ -11,6 +11,8 @@ module VoterFile
         line = array.map do |val|
           if val.nil?
             "\\N"
+          elsif val == '\\'
+            val = "\\N"
           elsif val.is_a?(DateTime)
             val.to_s(:db)
           else
