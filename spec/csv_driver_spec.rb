@@ -61,8 +61,7 @@ describe VoterFile::CSVDriver do
       end
       return_value.should == working_table
 
-      VoterFile::CSVDriver::CSVFile.rspec_reset
-      ActiveRecord::Base.rspec_reset
+      Rspec.reset
     end
   end
 
@@ -102,7 +101,7 @@ describe VoterFile::CSVDriver do
       db_table = subject.load_table_from_db(test_table_name) {}
       db_table.should be_a VoterFile::CSVDriver::DatabaseTable
 
-      Class.rspec_reset
+      Rspec.reset
     end
 
     it "raises an exception if the input table doesn't exist" do

@@ -6,7 +6,7 @@ source "http://rubygems.org"
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
 
-gem 'rails', '~> 3.2.13'
+gem 'rails', '4.0.4'
 
 group :development, :test do
   gem "rspec", '~> 2.0'
